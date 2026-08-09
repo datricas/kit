@@ -1,18 +1,29 @@
 # ============================================================
 #  FS Print - Workshop Claude Code - Bootstrap para Windows
+#
 #  Uso (PowerShell COMO ADMINISTRADOR):
 #      irm https://datricas.github.io/kit/win | iex
 #
-#  Esto instala WSL2 (Linux adentro de Windows) y despues corre
-#  adentro el mismo instalador que usan las Mac.
+#  Para ver que haria sin tocar nada:
+#      & ([scriptblock]::Create((irm https://datricas.github.io/kit/win))) -Check
+#
+#  Instala WSL2 (Linux adentro de Windows) y despues corre adentro
+#  el mismo instalador que usan las Mac.
 # ============================================================
+param([switch]$Check)
+
 $ErrorActionPreference = 'Stop'
 
-function Azul($t) { Write-Host $t -ForegroundColor Cyan }
-function OK($t)   { Write-Host "  [OK] $t" -ForegroundColor Green }
-function Info($t) { Write-Host "  ->  $t" -ForegroundColor Gray }
+function Azul($t)  { Write-Host $t -ForegroundColor Cyan }
+function OK($t)    { Write-Host "  [OK]  $t" -ForegroundColor Green }
+function Info($t)  { Write-Host "  ->    $t" -ForegroundColor Gray }
+function Aviso($t) { Write-Host "  [!]   $t" -ForegroundColor Yellow }
+function Haria($t) {
+  if ($Check) { Write-Host "  [~]   haria: $t" -ForegroundColor Yellow; return $true }
+  return $false
+}
 function Morir($t) {
-  Write-Host "  [X] $t" -ForegroundColor Red
+  Write-Host "  [X]   $t" -ForegroundColor Red
   Write-Host ""
   Write-Host "  Levanta la mano y lo vemos juntos."
   exit 1
@@ -20,8 +31,8 @@ function Morir($t) {
 
 Write-Host ""
 Azul "==========================================="
-Azul "  FS Print - Claude Code"
-Azul "  Preparando tu Windows"
+if ($Check) { Azul "  Modo chequeo - no se modifica nada" }
+else        { Azul "  FS Print - Preparando tu Windows" }
 Azul "==========================================="
 Write-Host ""
 
@@ -29,54 +40,105 @@ Write-Host ""
 $esAdmin = ([Security.Principal.WindowsPrincipal] `
   [Security.Principal.WindowsIdentity]::GetCurrent()
   ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
 if (-not $esAdmin) {
-  Morir "Abri PowerShell como administrador (boton derecho > Ejecutar como administrador) y volve a pegar el comando."
+  Morir "Abri PowerShell como administrador (boton derecho sobre el icono > Ejecutar como administrador) y volve a pegar el comando."
 }
 OK "Permisos de administrador"
 
-# ---- 2. WSL2 ----
+# ---- 2. Version de Windows ----
+$build = [int](Get-CimInstance Win32_OperatingSystem).BuildNumber
+if ($build -lt 19041) {
+  Morir "Tu Windows es muy viejo para WSL2 (build $build, hace falta 19041 o mayor). Actualiza Windows y volve a intentar."
+}
+OK "Windows build $build"
+
+# ---- 3. WSL2 con Ubuntu ----
 $wslListo = $false
 try {
-  $distros = (wsl.exe --list --quiet) -replace "`0", ""
+  $distros = (wsl.exe --list --quiet 2>$null) -replace "`0", ""
   if ($distros -match 'Ubuntu') { $wslListo = $true }
 } catch { $wslListo = $false }
 
 if (-not $wslListo) {
-  Info "Instalando WSL2 con Ubuntu. Esto tarda unos minutos..."
-  wsl.exe --install -d Ubuntu
+  if (Haria "instalar WSL2 con Ubuntu (pide reiniciar)") {
+    Aviso "Sin WSL no se puede seguir. El resto del chequeo asume que ya estaria instalado."
+  } else {
+    Info "Instalando WSL2 con Ubuntu. Tarda unos minutos..."
+    wsl.exe --install -d Ubuntu
+    Write-Host ""
+    Azul "  >>> HAY QUE REINICIAR LA COMPUTADORA <<<"
+    Write-Host ""
+    Write-Host "  Cuando vuelvas a prender:"
+    Write-Host "    1. Se abre sola una ventana de Ubuntu: elegi un usuario y una clave."
+    Write-Host "       (la clave no se ve mientras la escribis, es normal)"
+    Write-Host "    2. Volve a abrir PowerShell como administrador"
+    Write-Host "    3. Pega de nuevo el mismo comando"
+    Write-Host ""
+    exit 0
+  }
+} else {
+  OK "WSL2 con Ubuntu"
+  # Confirmar que Ubuntu arranca de verdad, no solo que esta registrada
+  try {
+    $prueba = wsl.exe -d Ubuntu -- echo listo 2>$null
+    if ($prueba -match 'listo') { OK "Ubuntu responde" }
+    else { Morir "Ubuntu esta instalada pero no arranca. Abri la app 'Ubuntu' desde el menu Inicio, crea el usuario y la clave, y volve a intentar." }
+  } catch {
+    Morir "Ubuntu esta instalada pero no arranca. Abri la app 'Ubuntu' desde el menu Inicio, crea el usuario y la clave, y volve a intentar."
+  }
+}
+
+# ---- 4. Windows Terminal ----
+if (-not (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
+  if (-not (Haria "instalar Windows Terminal")) {
+    Info "Instalando Windows Terminal..."
+    try {
+      winget install --id Microsoft.WindowsTerminal -e --silent `
+        --accept-package-agreements --accept-source-agreements | Out-Null
+      OK "Windows Terminal"
+    } catch {
+      Aviso "No se pudo instalar Windows Terminal. Se puede seguir sin el."
+    }
+  }
+} else {
+  OK "Windows Terminal"
+}
+
+# ---- 5. Fuente con iconos ----
+if (-not (Haria "instalar la fuente Nerd Font")) {
+  try {
+    winget install --id DEVCOM.JetBrainsMonoNerdFont -e --silent `
+      --accept-package-agreements --accept-source-agreements | Out-Null
+    OK "Fuente Nerd Font"
+  } catch {
+    Aviso "La fuente hay que instalarla a mano despues. No frena nada: solo se ven cuadraditos en vez de iconos."
+  }
+}
+
+# ---- 6. El instalador de Linux, adentro de WSL ----
+Write-Host ""
+if (Haria "correr el instalador de Linux adentro de Ubuntu") {
   Write-Host ""
-  Azul "  >>> HAY QUE REINICIAR LA COMPUTADORA <<<"
-  Write-Host ""
-  Write-Host "  Cuando vuelvas a prender:"
-  Write-Host "    1. Se abre sola una ventana de Ubuntu: elegi un usuario y una clave."
-  Write-Host "       (la clave no se ve mientras la escribis, es normal)"
-  Write-Host "    2. Volve a abrir PowerShell como administrador"
-  Write-Host "    3. Pega de nuevo el mismo comando"
+  Azul "==========================================="
+  Azul "  Chequeo terminado. No se toco nada."
+  Azul "==========================================="
   Write-Host ""
   exit 0
 }
-OK "WSL2 con Ubuntu"
 
-# ---- 3. Windows Terminal y la fuente ----
-if (-not (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
-  Info "Instalando Windows Terminal..."
-  try { winget install --id Microsoft.WindowsTerminal -e --silent --accept-package-agreements --accept-source-agreements | Out-Null }
-  catch { Info "No se pudo instalar Windows Terminal automaticamente. Se puede seguir sin el." }
-}
-try {
-  winget install --id DEVCOM.JetBrainsMonoNerdFont -e --silent --accept-package-agreements --accept-source-agreements | Out-Null
-  OK "Fuente Nerd Font"
-} catch { Info "La fuente hay que instalarla a mano despues (no frena nada)." }
-
-# ---- 4. Adentro de WSL: el mismo bootstrap que las Mac ----
-Write-Host ""
 Azul "  Entrando a Linux para instalar el resto..."
 Write-Host ""
 wsl.exe -d Ubuntu -- bash -lc "curl -fsSL https://datricas.github.io/kit/linux | bash"
-if ($LASTEXITCODE -ne 0) { Morir "El instalador de Linux fallo. Mira el error de arriba." }
+if ($LASTEXITCODE -ne 0) {
+  Morir "El instalador de Linux fallo. Mira el error de arriba y avisa."
+}
 
 Write-Host ""
 Azul "==========================================="
-OK "Listo. Abri Windows Terminal y escribi:  doctor"
+OK "Listo."
+Write-Host ""
+Write-Host "  Abri Windows Terminal y escribi:  doctor"
+Write-Host ""
 Azul "==========================================="
 Write-Host ""
