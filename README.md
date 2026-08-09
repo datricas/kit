@@ -18,6 +18,21 @@ bash <(curl -fsSL https://datricas.github.io/kit/mac)
 irm https://datricas.github.io/kit/win | iex
 ```
 
+Si eso falla, `win.txt` es el mismo script servido como `text/plain`:
+
+```powershell
+irm https://datricas.github.io/kit/win.txt | iex
+```
+
+**Modo chequeo** (no toca nada). Hay que bajar el archivo primero: pasarle
+parámetros a un script traído con `irm` no es confiable, porque GitHub Pages
+sirve los archivos sin extensión como `application/octet-stream`.
+
+```powershell
+irm https://datricas.github.io/kit/win -OutFile "$env:TEMP\fsprint.ps1"
+& "$env:TEMP\fsprint.ps1" -Check
+```
+
 **Linux / WSL** (lo invoca el de Windows, no hace falta correrlo a mano)
 ```bash
 bash <(curl -fsSL https://datricas.github.io/kit/linux)
