@@ -5,12 +5,17 @@
 #      irm https://datricas.github.io/kit/win | iex
 #
 #  Para ver que haria sin tocar nada:
-#      & ([scriptblock]::Create((irm https://datricas.github.io/kit/win))) -Check
+#      $env:FSPRINT_CHECK=1; irm https://datricas.github.io/kit/win | iex
 #
 #  Instala WSL2 (Linux adentro de Windows) y despues corre adentro
 #  el mismo instalador que usan las Mac.
 # ============================================================
 param([switch]$Check)
+
+# Tambien se puede pedir el modo chequeo con una variable de entorno.
+# Es la forma confiable cuando el script llega por 'irm | iex', porque
+# ahi no hay manera de pasarle parametros.
+if ($env:FSPRINT_CHECK -eq '1') { $Check = $true }
 
 $ErrorActionPreference = 'Stop'
 

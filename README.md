@@ -24,14 +24,14 @@ Si eso falla, `win.txt` es el mismo script servido como `text/plain`:
 irm https://datricas.github.io/kit/win.txt | iex
 ```
 
-**Modo chequeo** (no toca nada). Hay que bajar el archivo primero: pasarle
-parámetros a un script traído con `irm` no es confiable, porque GitHub Pages
-sirve los archivos sin extensión como `application/octet-stream`.
+**Modo chequeo** (no toca nada):
 
 ```powershell
-irm https://datricas.github.io/kit/win -OutFile "$env:TEMP\fsprint.ps1"
-& "$env:TEMP\fsprint.ps1" -Check
+$env:FSPRINT_CHECK=1; irm https://datricas.github.io/kit/win | iex
 ```
+
+Se usa una variable de entorno y no un parametro porque a un script traido
+con `irm | iex` no se le pueden pasar parametros de forma confiable.
 
 **Linux / WSL** (lo invoca el de Windows, no hace falta correrlo a mano)
 ```bash
