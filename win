@@ -7,12 +7,13 @@
 #  Para ver que haria sin tocar nada:
 #      $env:FSPRINT_CHECK=1; irm https://datricas.github.io/kit/win | iex
 #
-#  Instala WSL2 (Linux adentro de Windows) y despues corre adentro
-#  el mismo instalador que usan las Mac.
+#  UN comando y UN reinicio. Despues del reinicio el instalador se
+#  reanuda SOLO: deja un RunOnce que espera a que Ubuntu este listo y
+#  termina la instalacion sin que haya que escribir nada mas.
 #
 #  NOTA TECNICA: todo va adentro de una funcion y no hay ni un 'exit'.
-#  Cuando un script llega por 'iex' corre en la sesion actual, asi que
-#  un 'exit' cerraria la ventana de PowerShell del usuario.
+#  Un script que llega por 'iex' corre en la sesion actual, asi que un
+#  'exit' cerraria la ventana de PowerShell del usuario.
 # ============================================================
 
 function Invoke-FSPrintBootstrap {
@@ -20,14 +21,11 @@ function Invoke-FSPrintBootstrap {
   param([switch]$Check)
 
   # La variable se CONSUME: vale para una sola corrida y se borra.
-  # Si quedara pegada en la sesion, la siguiente corrida seria otro
-  # chequeo sin instalar nada, y parece que hubiera funcionado.
   if ($env:FSPRINT_CHECK -eq '1') {
     $Check = $true
     Remove-Item Env:\FSPRINT_CHECK -ErrorAction SilentlyContinue
   }
 
-  # Se guarda y se restaura, para no dejarle la sesion cambiada.
   $eapPrevio = $ErrorActionPreference
   $ErrorActionPreference = 'Stop'
 
@@ -39,6 +37,79 @@ function Invoke-FSPrintBootstrap {
   function Haria($t) {
     if ($Check) { Write-Host "  [~]   haria: $t" -ForegroundColor Yellow; return $true }
     return $false
+  }
+
+  # Deja armado el script que se ejecuta solo despues del reinicio.
+  function Registrar-Continuacion {
+    $ruta = Join-Path $env:LOCALAPPDATA 'fsprint-continuar.ps1'
+    $cuerpo = @'
+$Host.UI.RawUI.WindowTitle = "FS Print - terminando la instalacion"
+function Azul($t) { Write-Host $t -ForegroundColor Cyan }
+Write-Host ""
+Azul "==========================================="
+Azul "  FS Print - Terminando la instalacion"
+Azul "==========================================="
+Write-Host ""
+Write-Host "  Esperando a que Ubuntu este listo..." -ForegroundColor Gray
+Write-Host ""
+
+$listo = $false
+$aviso = $false
+for ($i = 0; $i -lt 240; $i++) {
+  try {
+    $r = wsl.exe -d Ubuntu -- echo listo 2>$null
+    if ($r -match 'listo') { $listo = $true; break }
+  } catch { }
+
+  if ($i -eq 3 -and -not $aviso) {
+    $aviso = $true
+    Write-Host "  Falta un paso tuyo, son 20 segundos:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "    Se tiene que haber abierto una ventana negra de Ubuntu." -ForegroundColor White
+    Write-Host "    Te pide un usuario y una contrasena: pone los que quieras." -ForegroundColor White
+    Write-Host "    La contrasena NO se ve mientras la escribis. Es normal." -ForegroundColor White
+    Write-Host ""
+    Write-Host "    Si no se abrio, buscala en el menu Inicio como 'Ubuntu'." -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Esta ventana sigue sola en cuanto termines." -ForegroundColor Gray
+    Write-Host ""
+    try { Start-Process 'ubuntu.exe' -ErrorAction SilentlyContinue } catch { }
+  }
+  Start-Sleep -Seconds 5
+}
+
+if (-not $listo) {
+  Write-Host "  [X]  Ubuntu no respondio." -ForegroundColor Red
+  Write-Host "       Abri Ubuntu desde el menu Inicio, crea usuario y contrasena," -ForegroundColor Gray
+  Write-Host "       y pega este comando adentro:" -ForegroundColor Gray
+  Write-Host ""
+  Write-Host "         bash <(curl -fsSL https://datricas.github.io/kit/linux)" -ForegroundColor White
+  Write-Host ""
+  Read-Host "  Enter para cerrar"
+  return
+}
+
+Write-Host "  [OK] Ubuntu responde. Instalando el resto..." -ForegroundColor Green
+Write-Host ""
+wsl.exe -d Ubuntu -- bash -lc "curl -fsSL https://datricas.github.io/kit/linux | bash"
+
+Write-Host ""
+if ($LASTEXITCODE -eq 0) {
+  Azul "==========================================="
+  Write-Host "  LISTO. Ya podes cerrar esta ventana." -ForegroundColor Green
+  Write-Host ""
+  Write-Host "  Abri Windows Terminal y escribi:  doctor" -ForegroundColor White
+  Azul "==========================================="
+} else {
+  Write-Host "  [X]  Algo fallo. Sacale una foto a esto y avisa." -ForegroundColor Red
+}
+Write-Host ""
+Read-Host "  Enter para cerrar"
+'@
+    Set-Content -Path $ruta -Value $cuerpo -Encoding UTF8
+    $cmd = "powershell -ExecutionPolicy Bypass -File `"$ruta`""
+    New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' `
+      -Name 'FSPrintKit' -Value $cmd -PropertyType String -Force | Out-Null
   }
 
   try {
@@ -63,91 +134,63 @@ function Invoke-FSPrintBootstrap {
     # ---- 2. Version de Windows ----
     $build = [int](Get-CimInstance Win32_OperatingSystem).BuildNumber
     if ($build -lt 19041) {
-      Error2 "Tu Windows es muy viejo para WSL2 (build $build, hace falta 19041 o mayor). Actualiza Windows y volve a intentar."
+      Error2 "Tu Windows es muy viejo para WSL2 (build $build, hace falta 19041 o mayor)."
       return
     }
     OK "Windows build $build"
 
-    # ---- 3. WSL2 con Ubuntu ----
-    $wslListo = $false
-    try {
-      $distros = (wsl.exe --list --quiet 2>$null) -replace "`0", ""
-      if ($distros -match 'Ubuntu') { $wslListo = $true }
-    } catch { $wslListo = $false }
-
-    if (-not $wslListo) {
-      if (Haria "instalar WSL2 con Ubuntu (pide reiniciar)") {
-        Aviso "Sin WSL no se puede seguir. El resto del chequeo asume que ya estaria instalado."
-      } else {
-        Info "Instalando WSL2 con Ubuntu. Tarda unos minutos..."
-
-        # Antes de instalar: las dos funciones de Windows que WSL2 necesita.
-        # Si estan apagadas, 'wsl --install' falla de formas raras.
-        foreach ($f in @('Microsoft-Windows-Subsystem-Linux', 'VirtualMachinePlatform')) {
-          try {
-            $estado = (Get-WindowsOptionalFeature -Online -FeatureName $f).State
-            if ($estado -ne 'Enabled') {
-              Info "Activando $f..."
-              Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart | Out-Null
-            }
-          } catch {
-            Aviso "No pude revisar $f. Sigo igual."
-          }
-        }
-
-        wsl.exe --install -d Ubuntu
-        $codigo = $LASTEXITCODE
-
-        # 'wsl --install' puede fallar sin decir nada util. Hay que mirarlo.
-        if ($codigo -ne 0) {
-          Write-Host ""
-          Error2 "La instalacion de WSL fallo (codigo $codigo)."
-          Write-Host ""
-          Write-Host "  Las causas mas comunes, en orden:" -ForegroundColor Gray
-          Write-Host "    1. La virtualizacion esta apagada en la BIOS." -ForegroundColor Gray
-          Write-Host "       Se prende entrando a la BIOS al encender (suele ser F2 o Supr)" -ForegroundColor Gray
-          Write-Host "       y buscando 'Virtualization', 'Intel VT-x' o 'AMD-V'." -ForegroundColor Gray
-          Write-Host "    2. Falta reiniciar despues de activar las funciones de Windows." -ForegroundColor Gray
-          Write-Host "       Reinicia y volve a pegar el comando." -ForegroundColor Gray
-          Write-Host "    3. Windows sin actualizar. Proba: wsl --update" -ForegroundColor Gray
-          Write-Host ""
-          Write-Host "  Sacale una foto a esto y avisa." -ForegroundColor Gray
-          Write-Host ""
-          return
-        }
-
-        Write-Host ""
-        Azul "  >>> HAY QUE REINICIAR LA COMPUTADORA <<<"
-        Write-Host ""
-        Write-Host "  Cuando vuelvas a prender:"
-        Write-Host ""
-        Write-Host "    1. Se abre sola una ventana de Ubuntu: elegi un usuario y una clave."
-        Write-Host "       (la clave no se ve mientras la escribis, es normal)"
-        Write-Host ""
-        Write-Host "    2. Y AHI MISMO, adentro de Ubuntu, pega este comando:" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "       bash <(curl -fsSL https://datricas.github.io/kit/linux)" -ForegroundColor White
-        Write-Host ""
-        Write-Host "       No hace falta volver a PowerShell." -ForegroundColor Gray
-        Write-Host ""
-        return
-      }
-    } else {
-      OK "WSL2 con Ubuntu"
-      $arranca = $false
+    # ---- 3. Las dos funciones de Windows que WSL2 necesita ----
+    $huboCambio = $false
+    foreach ($f in @('Microsoft-Windows-Subsystem-Linux', 'VirtualMachinePlatform')) {
       try {
-        $prueba = wsl.exe -d Ubuntu -- echo listo 2>$null
-        if ($prueba -match 'listo') { $arranca = $true }
-      } catch { $arranca = $false }
-
-      if ($arranca) { OK "Ubuntu responde" }
-      else {
-        Error2 "Ubuntu esta instalada pero no arranca. Abri la app 'Ubuntu' desde el menu Inicio, crea el usuario y la clave, y volve a intentar."
-        return
+        $estado = (Get-WindowsOptionalFeature -Online -FeatureName $f).State
+        if ($estado -ne 'Enabled') {
+          if (-not (Haria "activar $f")) {
+            Info "Activando $f..."
+            Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart | Out-Null
+            $huboCambio = $true
+          }
+        } else {
+          OK "$f"
+        }
+      } catch {
+        Aviso "No pude revisar $f."
       }
     }
 
-    # ---- 4. Windows Terminal ----
+    # ---- 4. Ubuntu ----
+    $ubuntuListo = $false
+    try {
+      $distros = (wsl.exe --list --quiet 2>$null) -replace "`0", ""
+      if ($distros -match 'Ubuntu') { $ubuntuListo = $true }
+    } catch { }
+
+    if (-not $ubuntuListo) {
+      if (-not (Haria "instalar Ubuntu")) {
+        Info "Instalando Ubuntu. Tarda unos minutos..."
+        wsl.exe --install -d Ubuntu --no-launch 2>$null
+        if ($LASTEXITCODE -ne 0) {
+          # Las versiones viejas de wsl.exe no conocen --no-launch
+          wsl.exe --install -d Ubuntu
+        }
+        if ($LASTEXITCODE -ne 0 -and -not $huboCambio) {
+          Write-Host ""
+          Error2 "La instalacion de Ubuntu fallo (codigo $LASTEXITCODE)."
+          Write-Host ""
+          Write-Host "  Causas mas comunes, en orden:" -ForegroundColor Gray
+          Write-Host "    1. Virtualizacion apagada en la BIOS (Intel VT-x / AMD-V)." -ForegroundColor Gray
+          Write-Host "    2. Falta reiniciar. Reinicia y volve a pegar el comando." -ForegroundColor Gray
+          Write-Host "    3. Windows sin actualizar. Proba: wsl --update" -ForegroundColor Gray
+          Write-Host ""
+          return
+        }
+        $huboCambio = $true
+      }
+    } else {
+      OK "Ubuntu instalado"
+    }
+
+    # ---- 5. Windows Terminal y la fuente ----
     if (-not (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
       if (-not (Haria "instalar Windows Terminal")) {
         Info "Instalando Windows Terminal..."
@@ -155,45 +198,65 @@ function Invoke-FSPrintBootstrap {
           winget install --id Microsoft.WindowsTerminal -e --silent `
             --accept-package-agreements --accept-source-agreements | Out-Null
           OK "Windows Terminal"
-        } catch {
-          Aviso "No se pudo instalar Windows Terminal. Se puede seguir sin el."
-        }
+        } catch { Aviso "No se pudo instalar Windows Terminal." }
       }
-    } else {
-      OK "Windows Terminal"
-    }
+    } else { OK "Windows Terminal" }
 
-    # ---- 5. Fuente con iconos ----
     if (-not (Haria "instalar la fuente Nerd Font")) {
       try {
         winget install --id DEVCOM.JetBrainsMonoNerdFont -e --silent `
           --accept-package-agreements --accept-source-agreements | Out-Null
         OK "Fuente Nerd Font"
-      } catch {
-        Aviso "La fuente hay que instalarla a mano despues. No frena nada: solo se ven cuadraditos en vez de iconos."
-      }
+      } catch { Aviso "La fuente hay que ponerla a mano. No frena nada." }
     }
 
-    # ---- 6. El instalador de Linux, adentro de WSL ----
-    Write-Host ""
-    if (Haria "correr el instalador de Linux adentro de Ubuntu") {
+    if ($Check) {
       Write-Host ""
       Azul "==========================================="
       Write-Host "  CHEQUEO TERMINADO - NO SE INSTALO NADA" -ForegroundColor Yellow
       Azul "==========================================="
       Write-Host ""
-      Write-Host "  Para instalar de verdad, pega este comando:" -ForegroundColor Gray
-      Write-Host ""
+      Write-Host "  Para instalar de verdad:" -ForegroundColor Gray
       Write-Host "      irm https://datricas.github.io/kit/win | iex" -ForegroundColor White
       Write-Host ""
       return
     }
 
+    # ---- 6. Si hubo que tocar Windows: reiniciar y reanudar solo ----
+    if ($huboCambio) {
+      Registrar-Continuacion
+      Write-Host ""
+      Azul "==========================================="
+      Write-Host "  HAY QUE REINICIAR - UNA SOLA VEZ" -ForegroundColor Yellow
+      Azul "==========================================="
+      Write-Host ""
+      Write-Host "  Cuando vuelvas a prender, la instalacion SIGUE SOLA." -ForegroundColor White
+      Write-Host "  No tenes que escribir ningun comando mas." -ForegroundColor White
+      Write-Host ""
+      Write-Host "  Lo unico que te va a pedir es un usuario y una contrasena" -ForegroundColor Gray
+      Write-Host "  para Ubuntu. Son 20 segundos." -ForegroundColor Gray
+      Write-Host ""
+      $rta = Read-Host "  Reiniciar ahora? [S/n]"
+      if ($rta -eq '' -or $rta -match '^[sSyY]') {
+        Write-Host ""
+        Write-Host "  Reiniciando en 5 segundos..." -ForegroundColor Gray
+        Start-Sleep -Seconds 5
+        Restart-Computer -Force
+      } else {
+        Write-Host ""
+        Write-Host "  Bueno. Reinicia cuando puedas y sigue solo." -ForegroundColor Gray
+        Write-Host ""
+      }
+      return
+    }
+
+    # ---- 7. Nada que reiniciar: se termina de una ----
+    Write-Host ""
     Azul "  Entrando a Linux para instalar el resto..."
     Write-Host ""
     wsl.exe -d Ubuntu -- bash -lc "curl -fsSL https://datricas.github.io/kit/linux | bash"
     if ($LASTEXITCODE -ne 0) {
-      Error2 "El instalador de Linux fallo. Mira el error de arriba y avisa."
+      Error2 "El instalador de Linux fallo. Mira el error de arriba."
       return
     }
 
@@ -201,7 +264,7 @@ function Invoke-FSPrintBootstrap {
     Azul "==========================================="
     OK "Listo."
     Write-Host ""
-    Write-Host "  Abri Windows Terminal y escribi:  doctor"
+    Write-Host "  Abri Windows Terminal y escribi:  doctor" -ForegroundColor White
     Write-Host ""
     Azul "==========================================="
     Write-Host ""
