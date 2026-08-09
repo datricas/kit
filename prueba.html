@@ -140,65 +140,176 @@ Clientes y Parque instalado.<br>
 
 <h2>Parte 3 · Los siete ejercicios</h2>
 
-<p>Cronometrá cada uno y anotá el tiempo real. Los prompts están para copiar en
-<code>~/.fsprint-kit/ejercicios/</code> — leelos con <code>bat</code>:</p>
-<pre><code>bat ~/.fsprint-kit/ejercicios/01-plan-vs-directo.md</code></pre>
+<p>Cada uno tiene los pasos y el prompt para copiar. <b>Cronometrá</b> y anotá
+el tiempo real.</p>
 
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.1 · Ejercicio 1 — Plan vs. directo <small>(10 min)</small></label>
-<div class="ver">Sin plan escribe código en 10 segundos. Con plan mode
-(<code>Shift+Tab</code>) escribe un plan y espera. <b>Mismo prompt las dos veces.</b></div>
+<pre><code>cd ~/practica/demo-app
+claude</code></pre>
+<p><b>Pegá este prompt:</b></p>
+<pre><code>En el listado de facturas quiero poder filtrar por rango
+de fechas: dos campos, "desde" y "hasta", que filtren la
+tabla sin recargar la página.</code></pre>
+<p>Mirá lo que hace. Después, adentro de Claude:</p>
+<pre><code>/rewind</code></pre>
+<p>Volvés todo atrás. Ahora apretá <code>Shift+Tab</code> hasta que diga
+<b>plan mode</b> y pegá <b>exactamente el mismo prompt</b>.</p>
+<div class="ver">Sin plan escribe código en 10 segundos. Con plan te escribe qué
+archivos va a tocar y espera. <b>El prompt es idéntico las dos veces</b>: lo
+único que cambia es el modo.</div>
 </div>
 
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.2 · Ejercicio 2 — El mapa <small>(15 min)</small></label>
+<p>Abrí el prompt, copialo entero y pegalo en Claude:</p>
+<pre><code>bat ~/.fsprint-kit/prompts/01-mapa-de-la-aplicacion.md</code></pre>
+<p>O sin el visor, para copiar más fácil:</p>
+<pre><code>cat ~/.fsprint-kit/prompts/01-mapa-de-la-aplicacion.md</code></pre>
 <div class="ver">Deja 5 archivos: <code>ARQUITECTURA.md</code>,
 <code>INVENTARIO.md</code>, <code>RECORRIDO-DE-UN-DATO.md</code>,
 <code>CLAUDE.md.nuevo</code> y <code>RIESGOS.md</code>.<br>
-<b>En Mac tardó 13 min. Anotá cuánto tarda en Windows</b> — es el dato que más
-me falta.</div>
+<b>En Mac tardó 13 minutos. Anotá cuánto tarda acá</b> — es el dato que más me falta.</div>
+<p>Al terminar:</p>
+<pre><code>ls -la *.md</code></pre>
 </div>
 
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.3 · Ejercicio 3 — Tu arsenal <small>(15 min)</small></label>
-<div class="ver">Tres prompts: un comando <code>/mapa</code>, un agente
-<code>revisor</code> y un hook que suene al terminar. Al final
-<code>ls .claude/commands .claude/agents</code> tiene que mostrar los archivos.<br>
-<b>El del sonido es el que puede fallar en WSL</b> (audio). Reportá si suena o no.</div>
+<div class="aviso"><b>Va a pedirte permiso para escribir en <code>.claude/</code>.
+Aceptá.</b> Es a propósito: ninguna carpeta de proyecto puede autorizarse a sí
+misma a modificar su configuración de Claude. Si pudiera, cualquier repositorio
+que clonaras podría escalar privilegios solo.</div>
+<p><b>1 · Tu comando</b></p>
+<pre><code>Convertí el prompt del mapa en un comando propio que se
+llame /mapa, en .claude/commands/.</code></pre>
+<p>Probalo escribiendo <code>/mapa</code></p>
+<p><b>2 · Tu agente</b></p>
+<pre><code>Creá un agente que se llame "revisor" en .claude/agents/.
+Revisa cambios buscando fechas tratadas como texto,
+consultas sin índice y claves escritas en el código.
+Solo puede leer: no puede modificar archivos.</code></pre>
+<p>Usalo: <code>usá el agente revisor sobre el último cambio</code></p>
+<p><b>3 · Tu hook</b></p>
+<pre><code>Escribime un hook que reproduzca un sonido cada vez que
+termines una tarea, y dejámelo configurado.</code></pre>
+<p>Al terminar:</p>
+<pre><code>ls .claude/commands .claude/agents</code></pre>
+<div class="ver">Tres archivos de texto. <b>Reportá si el hook del sonido suena
+o no</b> — el audio en WSL es lo que más dudas me genera.</div>
 </div>
 
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.4 · Ejercicio 4 — Tu primera rama <small>(8 min)</small></label>
-<div class="ver">Con la app abierta en el navegador, la columna "Vendedor"
-tiene que <b>desaparecer y volver</b> al cambiar de rama.</div>
+<p>Tené la app abierta en el navegador antes de empezar. Pegá:</p>
+<pre><code>Creá una rama que se llame columna-vendedor.
+Agregá una columna "Vendedor" al listado de facturas,
+siguiendo el patrón de las columnas que ya están.
+Cuando funcione, hacé commit. No subas nada todavía.</code></pre>
+<p>Cuando termine, salí de Claude (<code>/exit</code>) y en la terminal:</p>
+<pre><code>git switch main</code></pre>
+<p>Recargá el navegador: <b>la columna no está</b>. Y ahora:</p>
+<pre><code>git switch columna-vendedor</code></pre>
+<div class="ver">Recargás y la columna volvió. Ese es todo el ejercicio: verla
+desaparecer y volver.</div>
 </div>
 
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.5 · Ejercicio 5 — Escritor y revisor <small>(12 min)</small></label>
-<pre><code>cd ~/practica/demo-app && duo</code></pre>
-<div class="ver">Tres paneles tmux. Claude encuentra el error de fechas y lo
-arregla; <code>npm test</code> pasa de 3 fallando a todos pasando.<br>
-<b>Clave:</b> Claude tiene que poder correr <code>npm test</code> <b>sin pedir
-permiso</b>. Si lo pide, reportalo.</div>
+<pre><code>cd ~/practica/demo-app
+duo</code></pre>
+<p>Se abren tres paneles. Te movés con <code>Alt</code> + flechas.</p>
+<p><b>Panel izquierdo</b> — escribí <code>claude</code> y pegá:</p>
+<pre><code>El total del listado de facturas está mal calculado.
+Encontrá por qué y arreglalo. Escribí un test que falle
+antes del arreglo y pase después.</code></pre>
+<p><b>Panel de arriba a la derecha</b> — <code>claude</code> y pegá:</p>
+<pre><code>Revisá el último cambio del repositorio. Buscá casos borde
+y consistencia con el resto. No modifiques ningún archivo.</code></pre>
+<p><b>Panel de abajo</b> — algo largo corriendo atrás:</p>
+<pre><code>claude --bg "escribí tests para el módulo de facturación"
+claude agents</code></pre>
+<div class="ver"><b>Lo que hay que verificar:</b> que Claude corra
+<code>npm test</code> <b>sin pedir permiso</b>. Al final los 3 tests que fallaban
+tienen que pasar.</div>
+<div class="mal">Si pide permiso para <code>npm test</code>, reportalo: significa
+que la carpeta no quedó marcada como confiable.</div>
 </div>
 
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.6 · Ejercicio 6 — Todos al mismo repo <small>(10 min)</small></label>
-<p>Solo, corré los tres prompts en tres ramas:</p>
-<pre><code>bat ~/.fsprint-kit/ejercicios/06/A-facturas-csv.md
-bat ~/.fsprint-kit/ejercicios/06/B-clientes-ultima-compra.md
-bat ~/.fsprint-kit/ejercicios/06/C-parque-filtro-modelo.md</code></pre>
-<div class="ver">Claude crea la rama, commitea y <b>sube sin pedir permiso</b>.
-Las tres ramas tienen que aparecer en GitHub y mergear sin conflicto.</div>
+<p>Solo, hacé los tres seguidos. <b>Cada uno arranca desde main:</b></p>
+<pre><code>git switch main</code></pre>
+<p><b>🅰 Facturas → CSV</b></p>
+<pre><code>Creá una rama nueva a partir de origin/main que se llame
+facturas-csv.
+
+Agregá un botón "Exportar CSV" al listado de facturas, que
+baje un archivo con las facturas que se están viendo en
+pantalla, respetando el filtro por línea de negocio.
+
+Seguí el patrón del botón de exportar que ya existe en la
+pantalla de parque instalado (app/parque/page.tsx): reusá
+el mismo componente y el mismo helper.
+
+Las columnas del CSV son: comprobante, fecha, cliente,
+línea y monto.
+
+Cuando funcione, corré npm test. Ojo: ya hay 3 tests en rojo
+por un bug conocido que no es tuyo. Confirmá que no agregaste
+fallas nuevas, y si es así hacé commit y subí la rama.</code></pre>
+<p><b>🅱 Clientes → última compra</b></p>
+<pre><code>Creá una rama nueva a partir de origin/main que se llame
+clientes-ultima-compra.
+
+Agregá una columna "Última compra" al listado de clientes,
+con la fecha de la factura más reciente de ese cliente. Si
+nunca compró, mostrá un guion.
+
+Ojo con las fechas: vienen de Softland como texto DDMMAAAA,
+no se pueden comparar como texto. Usá el helper sqlFecha()
+de lib/fechas.ts, igual que hace lib/queries/parque.ts.
+
+Cuando funcione, corré npm test. Ojo: ya hay 3 tests en rojo
+por un bug conocido que no es tuyo. Confirmá que no agregaste
+fallas nuevas, y si es así hacé commit y subí la rama.</code></pre>
+<p><b>🅲 Parque → filtro por modelo</b></p>
+<pre><code>Creá una rama nueva a partir de origin/main que se llame
+parque-filtro-modelo.
+
+Agregá un filtro por modelo de prensa al listado del parque
+instalado. Es un desplegable con los modelos que realmente
+existen en la base, más una opción "Todos".
+
+Seguí el patrón del filtro por línea de negocio que ya existe
+en facturas (components/FiltroLinea.tsx): que guarde la
+selección en la URL. Ya existe la consulta modelosDelParque()
+en lib/queries/parque.ts: usala.
+
+Cuando funcione, corré npm test. Ojo: ya hay 3 tests en rojo
+por un bug conocido que no es tuyo. Confirmá que no agregaste
+fallas nuevas, y si es así hacé commit y subí la rama.</code></pre>
+<p>Al final, mirá que las tres subieron:</p>
+<pre><code>git ls-remote --heads origin</code></pre>
+<div class="ver"><b>Lo que hay que verificar:</b> que suba <b>sin pedir permiso</b>,
+y que las tres ramas mergeen a main sin conflicto.</div>
 </div>
 
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.7 · Ejercicio 7 — Los MCPs <small>(10 min)</small></label>
+<p>Salí de Claude y en la terminal:</p>
 <pre><code>claude plugin install chrome-devtools-mcp
 claude plugin install typescript-lsp
 claude plugin install context7</code></pre>
-<div class="ver">Los tres instalan por nombre corto. Después, pedirle que abra la
-app y mida el listado de facturas.</div>
+<p>Asegurate de tener la app corriendo en otro panel:</p>
+<pre><code>npm run dev</code></pre>
+<p>Volvé a abrir <code>claude</code> y pegá:</p>
+<pre><code>Abrí la app en el navegador (http://localhost:3000), entrá
+al listado de facturas y medí cuánto tarda en cargar.
+Decime qué es lo más lento y por qué, con los números.</code></pre>
+<div class="ver">Tiene que darte un diagnóstico con números, del estilo
+<i>"tarda 1,6 s y casi todo se va en 700 consultas a la base, una por fila"</i>.<br>
+Si algo no levanta: <code>/mcp</code> muestra el estado de cada conexión.</div>
 <div class="aviso"><b>Este es el que más chances tiene de fallar en Windows.</b>
 Chrome vive del lado de Windows y Claude corre adentro de WSL. Si no levanta,
 <b>no es tu culpa</b>: ese ejercicio lo demostrás en la Mac.</div>
