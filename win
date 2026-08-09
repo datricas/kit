@@ -120,10 +120,15 @@ function Invoke-FSPrintBootstrap {
         Azul "  >>> HAY QUE REINICIAR LA COMPUTADORA <<<"
         Write-Host ""
         Write-Host "  Cuando vuelvas a prender:"
+        Write-Host ""
         Write-Host "    1. Se abre sola una ventana de Ubuntu: elegi un usuario y una clave."
         Write-Host "       (la clave no se ve mientras la escribis, es normal)"
-        Write-Host "    2. Volve a abrir PowerShell como administrador"
-        Write-Host "    3. Pega de nuevo el mismo comando"
+        Write-Host ""
+        Write-Host "    2. Y AHI MISMO, adentro de Ubuntu, pega este comando:" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "       bash <(curl -fsSL https://datricas.github.io/kit/linux)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "       No hace falta volver a PowerShell." -ForegroundColor Gray
         Write-Host ""
         return
       }
