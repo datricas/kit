@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Prueba del kit</title>
+<style>
+ :root{--bg:#faf9f7;--fg:#1a1a1a;--mut:#6b6b6b;--box:#f0eeea;--acc:#2072ff;
+       --ok:#1a7f37;--warn:#9a6700;--bad:#cf222e;--line:#e3e0da}
+ @media(prefers-color-scheme:dark){:root{--bg:#0f0f10;--fg:#e9e9e9;--mut:#9a9a9a;
+       --box:#1b1b1d;--line:#2a2a2c;--ok:#3fb950;--warn:#d29922;--bad:#f85149}}
+ *{box-sizing:border-box}
+ body{margin:0;padding:2.5rem 1.25rem 6rem;background:var(--bg);color:var(--fg);
+      font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+ main{max-width:44rem;margin:0 auto}
+ h1{font-size:1.7rem;margin:0 0 .3rem}
+ p.sub{color:var(--mut);margin:0 0 2rem}
+ h2{font-size:1.15rem;margin:2.5rem 0 .75rem;padding-bottom:.4rem;
+    border-bottom:2px solid var(--fg)}
+ h3{font-size:1rem;margin:1.75rem 0 .5rem}
+ pre{background:var(--box);padding:.85rem 1rem;border-radius:8px;overflow-x:auto;
+     font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     margin:.5rem 0 .85rem;border-left:3px solid var(--acc)}
+ code{background:var(--box);padding:.1rem .35rem;border-radius:4px;
+      font:13.5px ui-monospace,Menlo,Consolas,monospace}
+ pre code{background:none;padding:0}
+ li{margin-bottom:.4rem}
+ .paso{border:1px solid var(--line);border-radius:10px;padding:1rem 1.15rem;
+       margin-bottom:1rem;background:var(--box)}
+ .paso h3{margin-top:0}
+ label.chk{display:flex;gap:.6rem;align-items:flex-start;cursor:pointer;
+           font-weight:600;margin-bottom:.5rem}
+ label.chk input{margin-top:.3rem;width:1.05rem;height:1.05rem;flex-shrink:0}
+ .ver{border-left:3px solid var(--ok);padding-left:.8rem;margin:.6rem 0;
+      color:var(--mut);font-size:.93rem}
+ .ver b{color:var(--fg)}
+ .mal{border-left:3px solid var(--bad);padding-left:.8rem;margin:.6rem 0;
+      font-size:.93rem;color:var(--mut)}
+ .aviso{background:rgba(210,153,34,.12);border:1px solid var(--warn);
+        border-radius:8px;padding:.85rem 1rem;margin:1rem 0;font-size:.94rem}
+ .aviso b{color:var(--warn)}
+ table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}
+ td,th{padding:.45rem .6rem;border-bottom:1px solid var(--line);text-align:left;
+       vertical-align:top}
+ th{color:var(--mut);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+ footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);
+        color:var(--mut);font-size:.9rem}
+</style></head><body><main>
+
+<h1>Prueba del kit, de punta a punta</h1>
+<p class="sub">Seguí los pasos en orden. En cada uno dice qué tenés que ver.</p>
+
+<div class="aviso">
+<b>Regla general:</b> si algo no coincide con lo que dice acá, pará y reportalo
+antes de seguir. Un paso mal deja los siguientes sin sentido.
+</div>
+
+<h2>Parte 0 · Terminar la instalación</h2>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 0.1 · Activar el componente de WSL</label>
+<p>En <b>PowerShell como administrador</b> (ventana nueva):</p>
+<pre><code>irm https://datricas.github.io/kit/win | iex</code></pre>
+<div class="ver"><b>Tenés que ver:</b> el encabezado dice
+<code>FS Print - Preparando tu Windows</code>. Si dice <b>MODO CHEQUEO</b>, cerrá
+la ventana y abrí otra.<br>
+Después: <code>Activando Microsoft-Windows-Subsystem-Linux...</code> y el cartel
+<code>&gt;&gt;&gt; HAY QUE REINICIAR LA COMPUTADORA &lt;&lt;&lt;</code>.</div>
+<div class="mal"><b>Si falla:</b> ahora te lista las causas. Sacale foto.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 0.2 · Reiniciar</label>
+<p>Reiniciá de verdad. Al volver puede abrirse sola una ventana de Ubuntu
+pidiendo usuario y contraseña: poné los que quieras y <b>anotalos</b>.
+La contraseña no se ve mientras la escribís.</p>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 0.3 · Segunda pasada</label>
+<pre><code>irm https://datricas.github.io/kit/win | iex</code></pre>
+<div class="aviso">Puede pedir <b>un segundo reinicio</b>. Si lo pide, reiniciá
+y volvé a pegarlo. No es un error.</div>
+<div class="ver"><b>Termina con:</b> <code>[OK] Listo.</code> y
+<code>Abri Windows Terminal y escribi: doctor</code></div>
+</div>
+
+<h2>Parte 1 · Que el entorno esté sano</h2>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 1.1 · Abrir Windows Terminal en Ubuntu</label>
+<p>Inicio → <code>Terminal</code>. Si abre PowerShell, flechita <b>▾</b> al lado
+del <code>+</code> → <b>Ubuntu</b>.</p>
+<div class="ver"><b>Tenés que ver:</b> el prompt es una flecha <code>❯</code>,
+fondo oscuro, y <b>no</b> dice <code>PS C:\</code>.</div>
+<div class="mal"><b>Si no aparece Ubuntu en la lista:</b> reportalo. Significa que
+WSL no quedó registrado.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 1.2 · doctor</label>
+<pre><code>doctor</code></pre>
+<div class="ver"><b>Reportá la salida completa</b>, esté verde o no. Son 24
+chequeos y es la primera vez que corren en Linux de verdad.</div>
+</div>
+
+<h2>Parte 2 · Claude</h2>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 2.1 · Primer arranque</label>
+<pre><code>cd ~/practica/demo-app
+claude</code></pre>
+<div class="ver"><b>Tenés que ver:</b> pide iniciar sesión e imprime un link.
+Si no abre el navegador solo, copialo a mano.<br>
+<b>Importante:</b> <b>no</b> debería pedirte ningún diálogo de confianza sobre
+la carpeta. Si te lo pide, reportalo.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 2.2 · Estado</label>
+<p>Adentro de Claude:</p>
+<pre><code>/status</code></pre>
+<div class="ver">Versión y cuenta. Después <code>/exit</code> para salir.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 2.3 · La app andando</label>
+<p><code>Ctrl+Shift+D</code> divide el panel. En el nuevo:</p>
+<pre><code>cd ~/practica/demo-app
+npm run dev</code></pre>
+<p>Y abrí <code>localhost:3000</code> en el navegador de Windows.</p>
+<div class="ver"><b>Tenés que ver:</b> el panel con
+<b>$ 10.956.426.304</b> facturado en julio. Ese es el error plantado: lo correcto
+es $1.020 millones. Las cuatro pantallas tienen que abrir: Panel, Facturas,
+Clientes y Parque instalado.<br>
+<b>Facturas tarda ~1,5 s</b>, las otras son instantáneas. Eso es a propósito.</div>
+</div>
+
+<h2>Parte 3 · Los siete ejercicios</h2>
+
+<p>Cronometrá cada uno y anotá el tiempo real. Los prompts están para copiar en
+<code>~/.fsprint-kit/ejercicios/</code> — leelos con <code>bat</code>:</p>
+<pre><code>bat ~/.fsprint-kit/ejercicios/01-plan-vs-directo.md</code></pre>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 3.1 · Ejercicio 1 — Plan vs. directo <small>(10 min)</small></label>
+<div class="ver">Sin plan escribe código en 10 segundos. Con plan mode
+(<code>Shift+Tab</code>) escribe un plan y espera. <b>Mismo prompt las dos veces.</b></div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 3.2 · Ejercicio 2 — El mapa <small>(15 min)</small></label>
+<div class="ver">Deja 5 archivos: <code>ARQUITECTURA.md</code>,
+<code>INVENTARIO.md</code>, <code>RECORRIDO-DE-UN-DATO.md</code>,
+<code>CLAUDE.md.nuevo</code> y <code>RIESGOS.md</code>.<br>
+<b>En Mac tardó 13 min. Anotá cuánto tarda en Windows</b> — es el dato que más
+me falta.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 3.3 · Ejercicio 3 — Tu arsenal <small>(15 min)</small></label>
+<div class="ver">Tres prompts: un comando <code>/mapa</code>, un agente
+<code>revisor</code> y un hook que suene al terminar. Al final
+<code>ls .claude/commands .claude/agents</code> tiene que mostrar los archivos.<br>
+<b>El del sonido es el que puede fallar en WSL</b> (audio). Reportá si suena o no.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 3.4 · Ejercicio 4 — Tu primera rama <small>(8 min)</small></label>
+<div class="ver">Con la app abierta en el navegador, la columna "Vendedor"
+tiene que <b>desaparecer y volver</b> al cambiar de rama.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 3.5 · Ejercicio 5 — Escritor y revisor <small>(12 min)</small></label>
+<pre><code>cd ~/practica/demo-app && duo</code></pre>
+<div class="ver">Tres paneles tmux. Claude encuentra el error de fechas y lo
+arregla; <code>npm test</code> pasa de 3 fallando a todos pasando.<br>
+<b>Clave:</b> Claude tiene que poder correr <code>npm test</code> <b>sin pedir
+permiso</b>. Si lo pide, reportalo.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 3.6 · Ejercicio 6 — Todos al mismo repo <small>(10 min)</small></label>
+<p>Solo, corré los tres prompts en tres ramas:</p>
+<pre><code>bat ~/.fsprint-kit/ejercicios/06/A-facturas-csv.md
+bat ~/.fsprint-kit/ejercicios/06/B-clientes-ultima-compra.md
+bat ~/.fsprint-kit/ejercicios/06/C-parque-filtro-modelo.md</code></pre>
+<div class="ver">Claude crea la rama, commitea y <b>sube sin pedir permiso</b>.
+Las tres ramas tienen que aparecer en GitHub y mergear sin conflicto.</div>
+</div>
+
+<div class="paso">
+<label class="chk"><input type="checkbox"> 3.7 · Ejercicio 7 — Los MCPs <small>(10 min)</small></label>
+<pre><code>claude plugin install chrome-devtools-mcp
+claude plugin install typescript-lsp
+claude plugin install context7</code></pre>
+<div class="ver">Los tres instalan por nombre corto. Después, pedirle que abra la
+app y mida el listado de facturas.</div>
+<div class="aviso"><b>Este es el que más chances tiene de fallar en Windows.</b>
+Chrome vive del lado de Windows y Claude corre adentro de WSL. Si no levanta,
+<b>no es tu culpa</b>: ese ejercicio lo demostrás en la Mac.</div>
+</div>
+
+<h2>Qué reportar</h2>
+<table>
+<tr><th>Paso</th><th>Qué necesito</th></tr>
+<tr><td>1.2</td><td>La salida completa de <code>doctor</code></td></tr>
+<tr><td>2.1</td><td>¿Pidió diálogo de confianza? Sí / No</td></tr>
+<tr><td>3.2</td><td>Cuántos minutos tardó el mapa</td></tr>
+<tr><td>3.3</td><td>¿Sonó el aviso?</td></tr>
+<tr><td>3.5</td><td>¿Corrió <code>npm test</code> sin pedir permiso?</td></tr>
+<tr><td>3.6</td><td>¿Subió las ramas sin pedir permiso?</td></tr>
+<tr><td>3.7</td><td>¿Chrome levantó desde WSL?</td></tr>
+<tr><td>Todos</td><td>El tiempo real de cada ejercicio</td></tr>
+</table>
+
+<h2>Si algo se rompe</h2>
+<table>
+<tr><td><b>Se cerró la terminal</b></td><td>Reportalo: no debería poder pasar</td></tr>
+<tr><td><b>Claude pide permiso por todo</b></td><td><code>bash ~/.fsprint-kit/bootstrap/confiar-practica.sh</code></td></tr>
+<tr><td><b>La app quedó rara</b></td><td><code>reset-practica</code></td></tr>
+<tr><td><b>Perdiste el hilo</b></td><td><code>doctor</code> te dice qué falta</td></tr>
+<tr><td><b>npm install falló</b></td><td><code>cd ~/practica/demo-app && npm install</code></td></tr>
+</table>
+
+<footer>
+Kit del workshop · Datricas<br>
+El kit se actualiza solo: <code>cd ~/.fsprint-kit && git pull</code>
+</footer>
+</main></body></html>
