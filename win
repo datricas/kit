@@ -1,0 +1,82 @@
+# ============================================================
+#  FS Print - Workshop Claude Code - Bootstrap para Windows
+#  Uso (PowerShell COMO ADMINISTRADOR):
+#      irm https://datricas.github.io/kit/win | iex
+#
+#  Esto instala WSL2 (Linux adentro de Windows) y despues corre
+#  adentro el mismo instalador que usan las Mac.
+# ============================================================
+$ErrorActionPreference = 'Stop'
+
+function Azul($t) { Write-Host $t -ForegroundColor Cyan }
+function OK($t)   { Write-Host "  [OK] $t" -ForegroundColor Green }
+function Info($t) { Write-Host "  ->  $t" -ForegroundColor Gray }
+function Morir($t) {
+  Write-Host "  [X] $t" -ForegroundColor Red
+  Write-Host ""
+  Write-Host "  Levanta la mano y lo vemos juntos."
+  exit 1
+}
+
+Write-Host ""
+Azul "==========================================="
+Azul "  FS Print - Claude Code"
+Azul "  Preparando tu Windows"
+Azul "==========================================="
+Write-Host ""
+
+# ---- 1. Permisos de administrador ----
+$esAdmin = ([Security.Principal.WindowsPrincipal] `
+  [Security.Principal.WindowsIdentity]::GetCurrent()
+  ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $esAdmin) {
+  Morir "Abri PowerShell como administrador (boton derecho > Ejecutar como administrador) y volve a pegar el comando."
+}
+OK "Permisos de administrador"
+
+# ---- 2. WSL2 ----
+$wslListo = $false
+try {
+  $distros = (wsl.exe --list --quiet) -replace "`0", ""
+  if ($distros -match 'Ubuntu') { $wslListo = $true }
+} catch { $wslListo = $false }
+
+if (-not $wslListo) {
+  Info "Instalando WSL2 con Ubuntu. Esto tarda unos minutos..."
+  wsl.exe --install -d Ubuntu
+  Write-Host ""
+  Azul "  >>> HAY QUE REINICIAR LA COMPUTADORA <<<"
+  Write-Host ""
+  Write-Host "  Cuando vuelvas a prender:"
+  Write-Host "    1. Se abre sola una ventana de Ubuntu: elegi un usuario y una clave."
+  Write-Host "       (la clave no se ve mientras la escribis, es normal)"
+  Write-Host "    2. Volve a abrir PowerShell como administrador"
+  Write-Host "    3. Pega de nuevo el mismo comando"
+  Write-Host ""
+  exit 0
+}
+OK "WSL2 con Ubuntu"
+
+# ---- 3. Windows Terminal y la fuente ----
+if (-not (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
+  Info "Instalando Windows Terminal..."
+  try { winget install --id Microsoft.WindowsTerminal -e --silent --accept-package-agreements --accept-source-agreements | Out-Null }
+  catch { Info "No se pudo instalar Windows Terminal automaticamente. Se puede seguir sin el." }
+}
+try {
+  winget install --id DEVCOM.JetBrainsMonoNerdFont -e --silent --accept-package-agreements --accept-source-agreements | Out-Null
+  OK "Fuente Nerd Font"
+} catch { Info "La fuente hay que instalarla a mano despues (no frena nada)." }
+
+# ---- 4. Adentro de WSL: el mismo bootstrap que las Mac ----
+Write-Host ""
+Azul "  Entrando a Linux para instalar el resto..."
+Write-Host ""
+wsl.exe -d Ubuntu -- bash -lc "curl -fsSL https://datricas.github.io/kit/linux | bash"
+if ($LASTEXITCODE -ne 0) { Morir "El instalador de Linux fallo. Mira el error de arriba." }
+
+Write-Host ""
+Azul "==========================================="
+OK "Listo. Abri Windows Terminal y escribi:  doctor"
+Azul "==========================================="
+Write-Host ""

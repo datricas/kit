@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# ============================================================
+#  FS Print · Workshop Claude Code — Bootstrap para macOS
+#  Uso:  bash <(curl -fsSL https://datricas.github.io/kit/mac)
+#
+#  Esto es solo el arranque: instala lo mínimo, autentica contra
+#  GitHub y clona el kit completo, que trae el instalador de verdad.
+# ============================================================
+set -euo pipefail
+
+KIT_REPO="datricas/fsprint-claude-kit"
+KIT_DIR="$HOME/.fsprint-kit"
+
+azul() { printf '\033[1;34m%s\033[0m\n' "$*"; }
+ok()   { printf '  \033[0;32m✓\033[0m %s\n' "$*"; }
+info() { printf '  \033[0;36m→\033[0m %s\n' "$*"; }
+err()  { printf '  \033[0;31m✗\033[0m %s\n' "$*" >&2; }
+
+morir() {
+  err "$1"
+  echo
+  echo "  Levantá la mano y lo vemos juntos."
+  exit 1
+}
+
+echo
+azul "═══════════════════════════════════════════"
+azul "  FS Print · Claude Code"
+azul "  Preparando tu Mac"
+azul "═══════════════════════════════════════════"
+echo
+
+# ---- 1. Herramientas de línea de comandos de Xcode (traen git) ----
+if ! xcode-select -p &>/dev/null; then
+  info "Instalando las herramientas de Xcode (se abre una ventana, aceptá)..."
+  xcode-select --install || true
+  echo
+  echo "  Esperando a que termine la instalación de Xcode..."
+  echo "  (si ya se cerró la ventana, esto sigue solo en unos segundos)"
+  until xcode-select -p &>/dev/null; do sleep 10; done
+fi
+ok "Herramientas de Xcode"
+
+# ---- 2. Homebrew ----
+if ! command -v brew &>/dev/null; then
+  info "Instalando Homebrew (puede pedir tu contraseña de la Mac)..."
+  NONINTERACTIVE=1 /bin/bash -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+    || morir "No se pudo instalar Homebrew."
+fi
+# Poner brew en el PATH de esta sesión (Apple Silicon o Intel)
+if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"
+fi
+command -v brew &>/dev/null || morir "Homebrew quedó instalado pero no está en el PATH."
+ok "Homebrew"
+
+# ---- 3. git y gh, que es lo único que hace falta para seguir ----
+for p in git gh; do
+  command -v "$p" &>/dev/null || { info "Instalando $p..."; brew install "$p"; }
+done
+ok "git y gh"
+
+# ---- 4. Autenticación con GitHub ----
+if ! gh auth status &>/dev/null; then
+  echo
+  azul "  Iniciá sesión en GitHub"
+  echo "  Se va a abrir el navegador y te va a pedir un código."
+  echo
+  gh auth login --hostname github.com --git-protocol https --web \
+    || morir "No se pudo iniciar sesión en GitHub."
+fi
+gh auth setup-git &>/dev/null || true
+ok "GitHub: $(gh api user --jq .login 2>/dev/null || echo 'sesión iniciada')"
+
+# ---- 5. Clonar el kit ----
+if [ -d "$KIT_DIR/.git" ]; then
+  info "Actualizando el kit..."
+  git -C "$KIT_DIR" pull --ff-only --quiet || true
+else
+  info "Bajando el kit de FS Print..."
+  gh repo clone "$KIT_REPO" "$KIT_DIR" -- --quiet \
+    || morir "No se pudo clonar $KIT_REPO. ¿Tu usuario de GitHub tiene acceso?"
+fi
+ok "Kit en $KIT_DIR"
+
+# ---- 6. Pasarle la posta al instalador completo ----
+echo
+azul "  Arrancando la instalación completa..."
+echo
+exec bash "$KIT_DIR/bootstrap/mac.sh" "$@"

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kit · Datricas</title>
+<style>
+ :root{--bg:#faf9f7;--fg:#1a1a1a;--mut:#6b6b6b;--box:#f0eeea;--acc:#2072ff}
+ @media(prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--mut:#999;--box:#1c1c1c}}
+ *{box-sizing:border-box}
+ body{margin:0;padding:3rem 1.25rem;background:var(--bg);color:var(--fg);
+      font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+ main{max-width:34rem;margin:0 auto}
+ h1{font-size:1.6rem;margin:0 0 .25rem}
+ p.sub{color:var(--mut);margin:0 0 2.5rem}
+ h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);
+    margin:2rem 0 .5rem}
+ pre{background:var(--box);padding:1rem;border-radius:8px;overflow-x:auto;
+     font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:0}
+ small{display:block;color:var(--mut);margin-top:.5rem;font-size:.85rem}
+ footer{margin-top:3rem;color:var(--mut);font-size:.85rem}
+ a{color:var(--acc)}
+</style></head><body><main>
+<h1>Kit de terminal</h1>
+<p class="sub">Workshop de Claude Code · Datricas</p>
+
+<h2>macOS</h2>
+<pre>bash &lt;(curl -fsSL https://datricas.github.io/kit/mac)</pre>
+<small>Abrí la app <strong>Terminal</strong> y pegá el comando.</small>
+
+<h2>Windows</h2>
+<pre>irm https://datricas.github.io/kit/win | iex</pre>
+<small>Abrí <strong>PowerShell como administrador</strong> y pegá el comando.</small>
+
+<footer>Tarda entre 5 y 12 minutos. Al terminar, escribí <code>doctor</code>.</footer>
+</main></body></html>
