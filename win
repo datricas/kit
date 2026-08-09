@@ -19,7 +19,13 @@ function Invoke-FSPrintBootstrap {
   [CmdletBinding()]
   param([switch]$Check)
 
-  if ($env:FSPRINT_CHECK -eq '1') { $Check = $true }
+  # La variable se CONSUME: vale para una sola corrida y se borra.
+  # Si quedara pegada en la sesion, la siguiente corrida seria otro
+  # chequeo sin instalar nada, y parece que hubiera funcionado.
+  if ($env:FSPRINT_CHECK -eq '1') {
+    $Check = $true
+    Remove-Item Env:\FSPRINT_CHECK -ErrorAction SilentlyContinue
+  }
 
   # Se guarda y se restaura, para no dejarle la sesion cambiada.
   $eapPrevio = $ErrorActionPreference
@@ -38,7 +44,7 @@ function Invoke-FSPrintBootstrap {
   try {
     Write-Host ""
     Azul "==========================================="
-    if ($Check) { Azul "  Modo chequeo - no se modifica nada" }
+    if ($Check) { Azul "  MODO CHEQUEO - NO SE VA A INSTALAR NADA" }
     else        { Azul "  FS Print - Preparando tu Windows" }
     Azul "==========================================="
     Write-Host ""
@@ -133,8 +139,12 @@ function Invoke-FSPrintBootstrap {
     if (Haria "correr el instalador de Linux adentro de Ubuntu") {
       Write-Host ""
       Azul "==========================================="
-      Azul "  Chequeo terminado. No se toco nada."
+      Write-Host "  CHEQUEO TERMINADO - NO SE INSTALO NADA" -ForegroundColor Yellow
       Azul "==========================================="
+      Write-Host ""
+      Write-Host "  Para instalar de verdad, pega este comando:" -ForegroundColor Gray
+      Write-Host ""
+      Write-Host "      irm https://datricas.github.io/kit/win | iex" -ForegroundColor White
       Write-Host ""
       return
     }
