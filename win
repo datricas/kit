@@ -80,7 +80,42 @@ function Invoke-FSPrintBootstrap {
         Aviso "Sin WSL no se puede seguir. El resto del chequeo asume que ya estaria instalado."
       } else {
         Info "Instalando WSL2 con Ubuntu. Tarda unos minutos..."
+
+        # Antes de instalar: las dos funciones de Windows que WSL2 necesita.
+        # Si estan apagadas, 'wsl --install' falla de formas raras.
+        foreach ($f in @('Microsoft-Windows-Subsystem-Linux', 'VirtualMachinePlatform')) {
+          try {
+            $estado = (Get-WindowsOptionalFeature -Online -FeatureName $f).State
+            if ($estado -ne 'Enabled') {
+              Info "Activando $f..."
+              Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart | Out-Null
+            }
+          } catch {
+            Aviso "No pude revisar $f. Sigo igual."
+          }
+        }
+
         wsl.exe --install -d Ubuntu
+        $codigo = $LASTEXITCODE
+
+        # 'wsl --install' puede fallar sin decir nada util. Hay que mirarlo.
+        if ($codigo -ne 0) {
+          Write-Host ""
+          Error2 "La instalacion de WSL fallo (codigo $codigo)."
+          Write-Host ""
+          Write-Host "  Las causas mas comunes, en orden:" -ForegroundColor Gray
+          Write-Host "    1. La virtualizacion esta apagada en la BIOS." -ForegroundColor Gray
+          Write-Host "       Se prende entrando a la BIOS al encender (suele ser F2 o Supr)" -ForegroundColor Gray
+          Write-Host "       y buscando 'Virtualization', 'Intel VT-x' o 'AMD-V'." -ForegroundColor Gray
+          Write-Host "    2. Falta reiniciar despues de activar las funciones de Windows." -ForegroundColor Gray
+          Write-Host "       Reinicia y volve a pegar el comando." -ForegroundColor Gray
+          Write-Host "    3. Windows sin actualizar. Proba: wsl --update" -ForegroundColor Gray
+          Write-Host ""
+          Write-Host "  Sacale una foto a esto y avisa." -ForegroundColor Gray
+          Write-Host ""
+          return
+        }
+
         Write-Host ""
         Azul "  >>> HAY QUE REINICIAR LA COMPUTADORA <<<"
         Write-Host ""
