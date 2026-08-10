@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="Guía del workshop de Claude Code — FS Print · Datricas">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌘</text></svg>">
+<title>Workshop Claude Code · FS Print</title>
+<style>
+:root{
+  --bg:#fbfaf8; --panel:#fff; --fg:#16161a; --fg2:#5b5b66; --fg3:#8b8b96;
+  --line:#e6e3dd; --line2:#d4d0c8;
+  --acc:#2060e8; --acc-bg:#eef3fe;
+  --ok:#177245; --ok-bg:#eaf5ee;
+  --warn:#8a5a00; --warn-bg:#fdf4e3;
+  --code-bg:#f4f2ee;
+  --radius:12px;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e0e11; --panel:#16161a; --fg:#ececef; --fg2:#a4a4b0; --fg3:#74747f;
+    --line:#26262c; --line2:#33333b;
+    --acc:#6b9bff; --acc-bg:#16203a;
+    --ok:#4ec27e; --ok-bg:#14251b;
+    --warn:#e0aa4a; --warn-bg:#2a2013;
+    --code-bg:#1c1c21;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:5rem}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font:16px/1.62 var(--sans);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ─── barra superior ─── */
+header{
+  position:sticky;top:0;z-index:50;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.barra{
+  max-width:52rem;margin:0 auto;padding:.7rem 1.5rem;
+  display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap;
+}
+.marca{font-weight:700;font-size:.95rem;letter-spacing:-.01em;margin-right:auto}
+.marca span{color:var(--fg3);font-weight:400}
+nav a{
+  color:var(--fg2);text-decoration:none;font-size:.85rem;
+  padding:.25rem .1rem;border-bottom:2px solid transparent;white-space:nowrap;
+}
+nav a:hover{color:var(--acc);border-bottom-color:var(--acc)}
+
+/* ─── layout ─── */
+main{max-width:52rem;margin:0 auto;padding:0 1.5rem 8rem}
+
+.hero{padding:4rem 0 2.5rem;border-bottom:1px solid var(--line);margin-bottom:3rem}
+.hero h1{font-size:2.4rem;line-height:1.1;margin:0 0 .6rem;letter-spacing:-.03em}
+.hero p{font-size:1.1rem;color:var(--fg2);margin:0;max-width:34rem}
+.hero .meta{margin-top:1.6rem;font-size:.87rem;color:var(--fg3)}
+
+h2{
+  font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--acc);margin:4.5rem 0 .4rem;font-weight:700;
+}
+h2:first-of-type{margin-top:0}
+h2 + .titulo{font-size:1.75rem;line-height:1.2;margin:0 0 1.6rem;letter-spacing:-.02em}
+h3{font-size:1.05rem;margin:2rem 0 .6rem;letter-spacing:-.01em}
+
+p{margin:0 0 1rem}
+.intro{color:var(--fg2);margin-bottom:2rem}
+
+/* ─── pasos ─── */
+.paso{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:1.4rem 1.5rem;margin-bottom:1rem;position:relative;
+}
+.paso.hecho{border-color:var(--ok);background:var(--ok-bg)}
+.cab{display:flex;gap:.85rem;align-items:flex-start;margin-bottom:.9rem}
+.cab input{
+  appearance:none;flex-shrink:0;width:1.35rem;height:1.35rem;margin:.12rem 0 0;
+  border:2px solid var(--line2);border-radius:6px;cursor:pointer;
+  transition:all .12s;position:relative;background:var(--bg);
+}
+.cab input:hover{border-color:var(--acc)}
+.cab input:checked{background:var(--ok);border-color:var(--ok)}
+.cab input:checked::after{
+  content:"";position:absolute;left:.4rem;top:.13rem;
+  width:.3rem;height:.62rem;border:solid #fff;border-width:0 2.5px 2.5px 0;
+  transform:rotate(45deg);
+}
+.cab label{font-weight:650;font-size:1.05rem;cursor:pointer;flex:1;letter-spacing:-.01em}
+.cab .tiempo{
+  font-size:.75rem;color:var(--fg3);font-weight:500;
+  border:1px solid var(--line2);border-radius:20px;padding:.12rem .55rem;
+  white-space:nowrap;margin-top:.2rem;
+}
+.paso > p:last-child,.paso > div:last-child{margin-bottom:0}
+
+/* ─── código ─── */
+.bloque{position:relative;margin:.75rem 0 1rem}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:9px;
+  padding:.9rem 3.2rem .9rem 1rem;margin:0;overflow-x:auto;
+  font:13.5px/1.6 var(--mono);
+}
+.copiar{
+  position:absolute;top:.5rem;right:.5rem;
+  background:var(--panel);color:var(--fg2);border:1px solid var(--line2);
+  border-radius:7px;padding:.28rem .55rem;font:600 11px var(--sans);
+  cursor:pointer;opacity:0;transition:opacity .15s,color .15s;
+}
+.bloque:hover .copiar,.copiar:focus{opacity:1}
+.copiar:hover{color:var(--acc);border-color:var(--acc)}
+.copiar.ok{color:var(--ok);border-color:var(--ok);opacity:1}
+code{
+  font-family:var(--mono);font-size:.885em;
+  background:var(--code-bg);padding:.12em .35em;border-radius:5px;
+}
+pre code{background:none;padding:0;font-size:inherit}
+
+/* ─── avisos ─── */
+.nota{
+  border-left:3px solid var(--line2);padding:.15rem 0 .15rem .9rem;
+  margin:.9rem 0;color:var(--fg2);font-size:.94rem;
+}
+.nota.ver{border-color:var(--ok)}
+.nota.ver strong{color:var(--fg)}
+.aviso{
+  background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);
+  border-radius:9px;padding:.85rem 1rem;margin:1rem 0;font-size:.94rem;color:var(--fg);
+}
+.aviso b{color:var(--warn)}
+
+/* ─── tablas ─── */
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.93rem}
+th,td{padding:.6rem .7rem;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);font-weight:600}
+tr:last-child td{border-bottom:none}
+td:first-child{white-space:nowrap}
+
+/* ─── progreso ─── */
+.progreso{
+  position:fixed;bottom:1.25rem;right:1.25rem;z-index:60;
+  background:var(--panel);border:1px solid var(--line2);border-radius:30px;
+  padding:.5rem 1rem;font-size:.82rem;color:var(--fg2);
+  box-shadow:0 3px 14px rgba(0,0,0,.09);display:flex;gap:.6rem;align-items:center;
+}
+.progreso b{color:var(--fg)}
+.progreso button{
+  background:none;border:none;color:var(--fg3);cursor:pointer;
+  font:inherit;padding:0;text-decoration:underline;
+}
+.progreso button:hover{color:var(--acc)}
+
+ul,ol{margin:0 0 1rem;padding-left:1.3rem}
+li{margin-bottom:.35rem}
+hr{border:none;border-top:1px solid var(--line);margin:3.5rem 0}
+footer{
+  margin-top:4rem;padding-top:2rem;border-top:1px solid var(--line);
+  color:var(--fg3);font-size:.88rem;
+}
+a{color:var(--acc)}
+kbd{
+  font:600 .82em var(--sans);background:var(--code-bg);
+  border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;
+  padding:.1em .4em;white-space:nowrap;
+}
+@media (max-width:640px){
+  .hero h1{font-size:1.9rem}
+  main{padding:0 1.1rem 6rem}
+  nav{display:none}
+  .progreso{left:1.1rem;right:1.1rem;justify-content:center}
+}
+@media print{
+  header,.progreso,.copiar{display:none}
+  .paso{break-inside:avoid;border-color:#ccc}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="barra">
+    <div class="marca">Claude Code <span>· FS Print</span></div>
+    <nav>
+      <a href="#instalar">Instalación</a>
+      <a href="#chequeo">Chequeo</a>
+      <a href="#ejercicios">Ejercicios</a>
+      <a href="#referencia">Referencia</a>
+      <a href="#despues">Después</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<div class="hero">
+  <h1>Guía del workshop</h1>
+  <p>Todo lo que vamos a hacer hoy, paso a paso, con los comandos y los prompts
+     listos para copiar. Tenela abierta durante toda la jornada.</p>
+  <div class="meta">Claude Code · Datricas para FS Print</div>
+</div>
+
+<p class="intro">
+  Cada bloque tiene una casilla para tildar: la página se acuerda de dónde
+  quedaste aunque la cierres. Pasá el mouse sobre cualquier bloque de código y
+  aparece el botón para copiarlo.
+</p>
+
+<!-- ══════════ INSTALACIÓN ══════════ -->
+<h2 id="instalar">Parte 1</h2>
+<div class="titulo">Dejar la máquina lista</div>
+
+<p class="intro">Esto arranca al principio del día y sigue solo en segundo plano
+mientras avanzamos. Tarda entre 10 y 20 minutos.</p>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="c1">
+    <label for="c1">Dos cosas a mano</label>
+    <span class="tiempo">1 min</span>
+  </div>
+  <p><b>Tu clave de Claude.</b> La cuenta Pro o Max.</p>
+  <p><b>Tu cuenta de GitHub.</b> Te llegó una invitación por mail a la
+     organización <i>datricas</i>. Tenés que haberla aceptado; si no lo hiciste,
+     hacelo ahora.</p>
+  <div class="nota">Si no encontrás el mail, entrá a
+    <a href="https://github.com/orgs/datricas/invitation">github.com/orgs/datricas/invitation</a>
+    con tu sesión de GitHub iniciada.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="c2">
+    <label for="c2">Abrí la terminal</label>
+    <span class="tiempo">1 min</span>
+  </div>
+  <p><b>En Mac:</b> apretá <kbd>⌘</kbd> + <kbd>espacio</kbd>, escribí
+     <b>Terminal</b> y dale enter.</p>
+  <p><b>En Windows:</b> botón derecho sobre el <b>botón de Inicio</b> (abajo a la
+     izquierda) y elegí <b>Terminal (Administrador)</b> o
+     <b>PowerShell (Administrador)</b>.</p>
+  <div class="aviso"><b>En Windows tiene que decir “Administrador”.</b>
+    Si no, la instalación no va a funcionar.</div>
+  <div class="nota">Se abre una ventana con texto y un cursor titilando.
+    Eso es la terminal.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="c3">
+    <label for="c3">Copiá y pegá el comando</label>
+    <span class="tiempo">1 min</span>
+  </div>
+  <p><b>En Mac:</b></p>
+  <div class="bloque"><pre><code>bash &lt;(curl -fsSL https://datricas.github.io/kit/mac)</code></pre></div>
+  <p><b>En Windows:</b></p>
+  <div class="bloque"><pre><code>irm https://datricas.github.io/kit/win | iex</code></pre></div>
+  <div class="nota">Para pegar: <kbd>⌘V</kbd> en Mac, <kbd>Ctrl+V</kbd> o botón
+    derecho en Windows. Después, enter.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="c4">
+    <label for="c4">Te va a preguntar tres cosas</label>
+    <span class="tiempo">2 min</span>
+  </div>
+  <h3>1 · Tu contraseña</h3>
+  <p>La de tu computadora, o la de Ubuntu si estás en Windows.
+     <b>No se ve mientras la escribís: es normal.</b> Escribila y enter.</p>
+  <h3>2 · Iniciar sesión en GitHub</h3>
+  <p>Muestra un código de 8 caracteres y abre el navegador. Copiá el código,
+     pegalo ahí y aceptá.</p>
+  <h3>3 · Solo en Windows: reiniciar</h3>
+  <p>Te pide reiniciar la computadora. Decile que sí. <b>Al volver a prender la
+     instalación sigue sola</b>, no tenés que escribir ningún comando más.</p>
+  <div class="nota">Después del reinicio se abre una ventana negra que pide crear
+    un usuario y una contraseña para Ubuntu. Poné los que quieras y
+    <b>anotalos</b>.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="c5">
+    <label for="c5">Dejalo trabajar</label>
+    <span class="tiempo">10-20 min</span>
+  </div>
+  <p>No cierres la ventana ni toques nada. Si te pregunta algo, contestá y seguí.
+     Mientras tanto arrancamos con la presentación.</p>
+</div>
+
+<!-- ══════════ CHEQUEO ══════════ -->
+<h2 id="chequeo">Parte 2</h2>
+<div class="titulo">Confirmar que quedó todo bien</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="c6">
+    <label for="c6">La pantalla verde</label>
+    <span class="tiempo">2 min</span>
+  </div>
+  <p>En Windows, abrí <b>Windows Terminal</b> (Inicio → escribí “Terminal”).
+     En Mac, seguí en la misma ventana.</p>
+  <div class="bloque"><pre><code>doctor</code></pre></div>
+  <div class="nota ver"><strong>Tenés que ver</strong> una lista de chequeos, todos
+    con un tilde verde. Si aparece una cruz roja, abajo dice el comando exacto
+    que lo arregla.</div>
+  <p>Y una prueba más:</p>
+  <div class="bloque"><pre><code>cd ~/practica/demo-app && git pull</code></pre></div>
+  <div class="nota ver"><strong>No te tiene que pedir nada.</strong> Si te pide
+    usuario y contraseña, avisá: se arregla en diez segundos.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="c7">
+    <label for="c7">La aplicación de práctica andando</label>
+    <span class="tiempo">2 min</span>
+  </div>
+  <p>Dividí la pantalla en dos: <kbd>⌘D</kbd> en Mac,
+     <kbd>Ctrl+Shift+D</kbd> en Windows. En el panel nuevo:</p>
+  <div class="bloque"><pre><code>cd ~/practica/demo-app
+npm run dev</code></pre></div>
+  <p>Y abrí <a href="http://localhost:3000">localhost:3000</a> en el navegador.</p>
+  <div class="nota ver"><strong>Tenés que ver</strong> un panel de gestión con
+    cuatro pantallas: Panel, Facturas, Clientes y Parque instalado. Los datos son
+    inventados, pero tienen la forma de los de FS Print.</div>
+</div>
+
+<!-- ══════════ EJERCICIOS ══════════ -->
+<h2 id="ejercicios">Parte 3</h2>
+<div class="titulo">Los siete ejercicios</div>
+
+<p class="intro">Todos se hacen sobre la aplicación de práctica, en tu propia
+máquina. Nada de esto toca los sistemas de la empresa.</p>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="e1">
+    <label for="e1">1 · Plan mode: la misma feature, dos caminos</label>
+    <span class="tiempo">10 min</span>
+  </div>
+  <div class="bloque"><pre><code>cd ~/practica/demo-app
+claude</code></pre></div>
+  <p>Pegá este pedido:</p>
+  <div class="bloque"><pre><code>En el listado de facturas quiero poder filtrar por rango
+de fechas: dos campos, "desde" y "hasta", que filtren la
+tabla sin recargar la página.</code></pre></div>
+  <p>Mirá lo que hace. Después escribí <code>/rewind</code> para volver todo
+     atrás, apretá <kbd>Shift+Tab</kbd> hasta que diga <b>plan mode</b>, y pegá
+     exactamente el mismo pedido.</p>
+  <div class="nota ver"><strong>Lo que vas a ver:</strong> sin plan, empieza a
+    escribir código a los diez segundos. Con plan, te dice qué archivos va a
+    tocar y espera tu aprobación. El pedido es idéntico las dos veces.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="e2">
+    <label for="e2">2 · El mapa de la aplicación</label>
+    <span class="tiempo">15 min</span>
+  </div>
+  <p>Abrí el prompt, copialo entero y pegalo en Claude:</p>
+  <div class="bloque"><pre><code>cat ~/.fsprint-kit/prompts/01-mapa-de-la-aplicacion.md</code></pre></div>
+  <div class="nota ver"><strong>Deja cinco documentos:</strong> la arquitectura,
+    un inventario de pantallas y tablas, el recorrido completo de un dato, un
+    borrador del manual del proyecto, y una lista de riesgos ordenada por
+    gravedad.</div>
+  <div class="aviso">Tarda unos 13 minutos. Es el ejercicio más largo del día y
+    no se puede apurar. Mientras corre, seguimos con la presentación.</div>
+  <p><b>Este es el prompt que más te va a servir.</b> Esta semana corrélo sobre
+     la aplicación de verdad.</p>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="e3">
+    <label for="e3">3 · Armá tu arsenal</label>
+    <span class="tiempo">15 min</span>
+  </div>
+  <p>Los tres se resuelven pidiéndoselos a Claude. No hay que escribir código.</p>
+  <div class="aviso"><b>Te va a pedir permiso para escribir en
+    <code>.claude/</code>. Aceptá.</b> Que pregunte no es un error: es la única
+    carpeta que un proyecto no puede autorizarse a sí mismo a modificar. Si
+    pudiera, cualquier repositorio que bajaras podría darse permisos solo.</div>
+  <h3>Tu comando propio</h3>
+  <div class="bloque"><pre><code>Convertí el prompt del mapa en un comando propio que se
+llame /mapa, en .claude/commands/.</code></pre></div>
+  <p>Después probalo escribiendo <code>/mapa</code></p>
+  <h3>Tu especialista</h3>
+  <div class="bloque"><pre><code>Creá un agente que se llame "revisor" en .claude/agents/.
+Revisa cambios buscando fechas tratadas como texto,
+consultas sin índice y claves escritas en el código.
+Solo puede leer: no puede modificar archivos.</code></pre></div>
+  <p>Usalo: <code>usá el agente revisor sobre el último cambio</code></p>
+  <h3>Tu regla automática</h3>
+  <div class="bloque"><pre><code>Escribime un hook que reproduzca un sonido cada vez que
+termines una tarea, y dejámelo configurado.</code></pre></div>
+  <div class="nota ver"><strong>Al terminar</strong>, escribí
+    <code>ls .claude/commands .claude/agents</code>. Son tres archivos de texto:
+    eso es todo lo que hay detrás.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="e4">
+    <label for="e4">4 · Tu primera rama</label>
+    <span class="tiempo">8 min</span>
+  </div>
+  <p>Tené la aplicación abierta en el navegador antes de empezar.</p>
+  <div class="bloque"><pre><code>Creá una rama que se llame columna-vendedor.
+Agregá una columna "Vendedor" al listado de facturas,
+siguiendo el patrón de las columnas que ya están.
+Cuando funcione, hacé commit. No subas nada todavía.</code></pre></div>
+  <p>Cuando termine, salí de Claude con <code>/exit</code> y escribí:</p>
+  <div class="bloque"><pre><code>git switch main</code></pre></div>
+  <p>Recargá el navegador. Y después:</p>
+  <div class="bloque"><pre><code>git switch columna-vendedor</code></pre></div>
+  <div class="nota ver"><strong>Lo que vas a ver:</strong> la columna desaparece
+    y vuelve. Eso es una rama, y no hace falta saber nada más.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="e5">
+    <label for="e5">5 · Escritor, revisor y uno en segundo plano</label>
+    <span class="tiempo">12 min</span>
+  </div>
+  <div class="bloque"><pre><code>cd ~/practica/demo-app
+duo</code></pre></div>
+  <p>Se abren tres paneles. Te movés entre ellos con <kbd>Alt</kbd> + flechas.</p>
+  <h3>Panel izquierdo — el que escribe</h3>
+  <p>Escribí <code>claude</code> y pegá:</p>
+  <div class="bloque"><pre><code>El total del listado de facturas está mal calculado.
+Encontrá por qué y arreglalo. Escribí un test que falle
+antes del arreglo y pase después.</code></pre></div>
+  <h3>Panel de arriba a la derecha — el que revisa</h3>
+  <div class="bloque"><pre><code>Revisá el último cambio del repositorio. Buscá casos borde
+y consistencia con el resto. No modifiques ningún archivo.</code></pre></div>
+  <h3>Panel de abajo — algo largo corriendo atrás</h3>
+  <div class="bloque"><pre><code>claude --bg "escribí tests para el módulo de facturación"</code></pre></div>
+  <div class="nota ver"><strong>Lo que vas a ver:</strong> tres cosas al mismo
+    tiempo sin pisarse. Y, con suerte, al revisor encontrando algo que el que
+    escribió no vio.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="e6">
+    <label for="e6">6 · Los tres al mismo repositorio</label>
+    <span class="tiempo">10 min</span>
+  </div>
+  <p>Cada uno hace <b>una</b> de las tres. No hace falta escribir ningún comando
+     de git: Claude crea la rama, guarda y sube.</p>
+  <div class="bloque"><pre><code>git switch main</code></pre></div>
+  <h3>🅰 Facturas → exportar a CSV</h3>
+  <div class="bloque"><pre><code>Creá una rama nueva a partir de origin/main que se llame
+facturas-csv.
+
+Agregá un botón "Exportar CSV" al listado de facturas, que
+baje un archivo con las facturas que se están viendo en
+pantalla, respetando el filtro por línea de negocio.
+
+Seguí el patrón del botón de exportar que ya existe en la
+pantalla de parque instalado (app/parque/page.tsx): reusá
+el mismo componente y el mismo helper.
+
+Las columnas del CSV son: comprobante, fecha, cliente,
+línea y monto.
+
+Cuando funcione, corré npm test. Ojo: ya hay 3 tests en rojo
+por un bug conocido que no es tuyo. Confirmá que no agregaste
+fallas nuevas, y si es así hacé commit y subí la rama.</code></pre></div>
+  <h3>🅱 Clientes → última compra</h3>
+  <div class="bloque"><pre><code>Creá una rama nueva a partir de origin/main que se llame
+clientes-ultima-compra.
+
+Agregá una columna "Última compra" al listado de clientes,
+con la fecha de la factura más reciente de ese cliente. Si
+nunca compró, mostrá un guion.
+
+Ojo con las fechas: vienen de Softland como texto DDMMAAAA,
+no se pueden comparar como texto. Usá el helper sqlFecha()
+de lib/fechas.ts, igual que hace lib/queries/parque.ts.
+
+Cuando funcione, corré npm test. Ojo: ya hay 3 tests en rojo
+por un bug conocido que no es tuyo. Confirmá que no agregaste
+fallas nuevas, y si es así hacé commit y subí la rama.</code></pre></div>
+  <h3>🅲 Parque instalado → filtro por modelo</h3>
+  <div class="bloque"><pre><code>Creá una rama nueva a partir de origin/main que se llame
+parque-filtro-modelo.
+
+Agregá un filtro por modelo de prensa al listado del parque
+instalado. Es un desplegable con los modelos que realmente
+existen en la base, más una opción "Todos".
+
+Seguí el patrón del filtro por línea de negocio que ya existe
+en facturas (components/FiltroLinea.tsx): que guarde la
+selección en la URL. Ya existe la consulta modelosDelParque()
+en lib/queries/parque.ts: usala.
+
+Cuando funcione, corré npm test. Ojo: ya hay 3 tests en rojo
+por un bug conocido que no es tuyo. Confirmá que no agregaste
+fallas nuevas, y si es así hacé commit y subí la rama.</code></pre></div>
+  <div class="nota ver"><strong>Lo que vamos a ver juntos:</strong> las tres
+    ramas conviviendo en el repositorio, sin un solo conflicto. Las tres features
+    viven en pantallas distintas, y por eso no se pisan.</div>
+</div>
+
+<div class="paso">
+  <div class="cab">
+    <input type="checkbox" id="e7">
+    <label for="e7">7 · Conectar Claude a otras herramientas</label>
+    <span class="tiempo">10 min</span>
+  </div>
+  <div class="bloque"><pre><code>claude plugin install typescript-lsp
+claude plugin install context7</code></pre></div>
+  <p><b>En Mac</b>, además, el del navegador:</p>
+  <div class="bloque"><pre><code>claude plugin install chrome-devtools-mcp</code></pre></div>
+  <p><b>En Windows</b> ya viene configurado por el instalador.</p>
+  <p>Con la aplicación corriendo en otro panel, abrí <code>claude</code> y pegá:</p>
+  <div class="bloque"><pre><code>Abrí la app en el navegador (http://localhost:3000), entrá
+al listado de facturas y medí cuánto tarda en cargar.
+Decime qué es lo más lento y por qué, con los números.</code></pre></div>
+  <div class="nota ver"><strong>Lo que vas a ver:</strong> un diagnóstico con
+    números medidos, no una opinión. Del estilo “tarda 1,6 segundos y casi todo
+    se va en 700 consultas a la base, una por cada fila”.</div>
+  <div class="nota">En Windows el navegador trabaja sin ventana: no vas a ver
+    Chrome abrirse, pero los números son los mismos.</div>
+</div>
+
+<!-- ══════════ REFERENCIA ══════════ -->
+<h2 id="referencia">Parte 4</h2>
+<div class="titulo">Referencia rápida</div>
+
+<h3>Los modos · se cambian con <kbd>Shift+Tab</kbd></h3>
+<table>
+<tr><th>Modo</th><th>Qué hace</th><th>Cuándo</th></tr>
+<tr><td><code>plan</code></td><td>Investiga y propone. No toca nada</td><td>Casi siempre, al arrancar</td></tr>
+<tr><td><code>auto</code></td><td>Decide solo cuándo preguntar</td><td>Uso diario</td></tr>
+<tr><td><code>acceptEdits</code></td><td>Edita sin preguntar</td><td>Ya aprobaste el plan</td></tr>
+<tr><td><code>bypassPermissions</code></td><td>Sin frenos</td><td>Nunca en producción</td></tr>
+</table>
+
+<h3>Atajos</h3>
+<table>
+<tr><td><kbd>Shift+Tab</kbd></td><td>Cambiar de modo</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Frenarlo en el acto, sin perder el contexto</td></tr>
+<tr><td><kbd>Esc</kbd> <kbd>Esc</kbd></td><td>Volver atrás</td></tr>
+<tr><td><kbd>Ctrl+G</kbd></td><td>Abrir el plan en un editor para corregirlo vos</td></tr>
+</table>
+
+<h3>Comandos que más vas a usar</h3>
+<table>
+<tr><td><code>/clear</code></td><td>Reiniciar el contexto al cambiar de tarea</td></tr>
+<tr><td><code>/rewind</code></td><td>Volver a un punto anterior</td></tr>
+<tr><td><code>/usage</code></td><td>Cuánto consumiste de tu plan</td></tr>
+<tr><td><code>/init</code></td><td>Generar el manual del proyecto</td></tr>
+<tr><td><code>/code-review</code></td><td>Revisar el cambio en un contexto limpio</td></tr>
+<tr><td><code>/mcp</code></td><td>Estado de las conexiones externas</td></tr>
+</table>
+
+<h3>La terminal</h3>
+<table>
+<tr><th></th><th>Mac</th><th>Windows</th></tr>
+<tr><td>Partir la pantalla</td><td><kbd>⌘D</kbd></td><td><kbd>Ctrl+Shift+D</kbd></td></tr>
+<tr><td>Moverse entre paneles</td><td><kbd>⌘⌥</kbd>+flechas</td><td><kbd>Ctrl+Alt</kbd>+flechas</td></tr>
+<tr><td>Agrandar un panel</td><td><kbd>⌘⇧Z</kbd></td><td><kbd>Ctrl+Shift+Z</kbd></td></tr>
+</table>
+
+<h3>Comandos que agrega el kit</h3>
+<table>
+<tr><td><code>doctor</code></td><td>¿Está todo bien instalado?</td></tr>
+<tr><td><code>duo</code></td><td>Escritor, revisor y tu panel</td></tr>
+<tr><td><code>reset-practica</code></td><td>La aplicación de práctica vuelve a cero</td></tr>
+<tr><td><code>practica</code></td><td>Ir a la carpeta de la aplicación</td></tr>
+</table>
+
+<h3>El molde de pedido</h3>
+<div class="bloque"><pre><code>Creá una rama que se llame &lt;nombre-corto&gt;.
+
+Implementá: &lt;qué querés, en una o dos oraciones&gt;.
+
+Seguí el patrón de &lt;una pantalla parecida que ya exista&gt;.
+
+Cuando funcione, corré los tests. Si no rompiste nada,
+hacé commit con un mensaje descriptivo y subí la rama.</code></pre></div>
+<p>Las dos líneas del medio son las que separan un buen resultado de uno
+   mediocre.</p>
+
+<h3>Si algo se rompe</h3>
+<table>
+<tr><td><b>Claude pide permiso por todo</b></td><td><code>bash ~/.fsprint-kit/bootstrap/confiar-practica.sh</code></td></tr>
+<tr><td><b>La aplicación quedó rara</b></td><td><code>reset-practica</code></td></tr>
+<tr><td><b>Git pide usuario y contraseña</b></td><td><code>gh auth setup-git</code></td></tr>
+<tr><td><b>Perdiste el hilo</b></td><td><code>doctor</code> te dice qué falta</td></tr>
+<tr><td><b>No sabés en qué rama estás</b></td><td><code>git status</code></td></tr>
+</table>
+
+<!-- ══════════ DESPUÉS ══════════ -->
+<h2 id="despues">Parte 5</h2>
+<div class="titulo">Los primeros siete días</div>
+
+<ol>
+  <li><b>Hoy</b> — corré el prompt del mapa sobre la aplicación de verdad.</li>
+  <li><b>Mañana</b> — leé el manual que generó, corregilo y guardalo.</li>
+  <li><b>Esta semana</b> — una feature real, en rama, con plan mode.</li>
+  <li><b>Esta semana</b> — el inventario de accesos.</li>
+  <li><b>Viernes</b> — el primer chequeo de 30 minutos, todo el equipo.</li>
+</ol>
+
+<div class="aviso">Si en siete días no hacen el punto 1, el workshop no sirvió.
+  Y si hacen solo ese, ya lo justificaron.</div>
+
+<h3>Dónde queda todo</h3>
+<table>
+<tr><td><b>El kit</b></td><td><code>~/.fsprint-kit</code> — se actualiza con <code>cd ~/.fsprint-kit && git pull</code></td></tr>
+<tr><td><b>Los prompts</b></td><td><code>~/.fsprint-kit/prompts/</code></td></tr>
+<tr><td><b>Los ejercicios</b></td><td><code>~/.fsprint-kit/ejercicios/</code></td></tr>
+<tr><td><b>El playbook</b></td><td><code>~/.fsprint-kit/docs/playbook.pdf</code></td></tr>
+<tr><td><b>La aplicación de práctica</b></td><td><code>~/practica/demo-app</code></td></tr>
+</table>
+
+<h3>Las siete reglas</h3>
+<ol>
+  <li><b>Plan mode primero</b>, salvo que lo puedas describir en una oración.</li>
+  <li><b>Dale siempre una forma de verificar.</b> Vale 2-3 veces en calidad.</li>
+  <li><b>Una rama por feature.</b> Nunca sobre <code>main</code>.</li>
+  <li><b>Nadie mergea lo suyo.</b></li>
+  <li><b>Lo que aprendiste sufriendo, va al manual del proyecto.</b></li>
+  <li><b>Cero credenciales en el repositorio.</b></li>
+  <li><b>La base de Softland es de solo lectura. Siempre.</b></li>
+</ol>
+
+<footer>
+  Workshop de Claude Code · <b>Datricas</b> para FS Print<br>
+  El kit se actualiza: <code>cd ~/.fsprint-kit && git pull</code>
+</footer>
+
+</main>
+
+<div class="progreso">
+  <span><b id="hechos">0</b> de <b id="total">0</b></span>
+  <button id="reset">reiniciar</button>
+</div>
+
+<script>
+(function(){
+  var LLAVE = 'fsprint-guia-v1';
+  var cajas = Array.prototype.slice.call(document.querySelectorAll('.cab input'));
+  var hechos = document.getElementById('hechos');
+  var total  = document.getElementById('total');
+  total.textContent = cajas.length;
+
+  function leer(){
+    try { return JSON.parse(localStorage.getItem(LLAVE) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function pintar(){
+    var n = 0;
+    cajas.forEach(function(c){
+      c.closest('.paso').classList.toggle('hecho', c.checked);
+      if (c.checked) n++;
+    });
+    hechos.textContent = n;
+  }
+  var estado = leer();
+  cajas.forEach(function(c){
+    if (estado[c.id]) c.checked = true;
+    c.addEventListener('change', function(){
+      var e = leer(); e[c.id] = c.checked;
+      try { localStorage.setItem(LLAVE, JSON.stringify(e)); } catch(err){}
+      pintar();
+    });
+  });
+  pintar();
+
+  document.getElementById('reset').addEventListener('click', function(){
+    try { localStorage.removeItem(LLAVE); } catch(e){}
+    cajas.forEach(function(c){ c.checked = false; });
+    pintar();
+  });
+
+  // Botón de copiar en cada bloque de código
+  document.querySelectorAll('.bloque').forEach(function(b){
+    var btn = document.createElement('button');
+    btn.className = 'copiar';
+    btn.type = 'button';
+    btn.textContent = 'copiar';
+    btn.addEventListener('click', function(){
+      var txt = b.querySelector('code').innerText;
+      function ok(){
+        btn.textContent = 'copiado';
+        btn.classList.add('ok');
+        setTimeout(function(){ btn.textContent = 'copiar'; btn.classList.remove('ok'); }, 1600);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(ok, respaldo);
+      } else { respaldo(); }
+      function respaldo(){
+        var t = document.createElement('textarea');
+        t.value = txt; t.style.position = 'fixed'; t.style.opacity = '0';
+        document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); ok(); } catch(e){}
+        document.body.removeChild(t);
+      }
+    });
+    b.appendChild(btn);
+  });
+})();
+</script>
+</body>
+</html>
