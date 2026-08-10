@@ -70,7 +70,17 @@ if ! gh auth status &>/dev/null; then
   gh auth login --hostname github.com --git-protocol https --web \
     || morir "No se pudo iniciar sesión en GitHub."
 fi
-gh auth setup-git &>/dev/null || true
+# Sin esto, git pide usuario y contraseña — y GitHub sacó las contraseñas
+# en 2021, asi que la contrasena no funciona y quedas trabado.
+if ! gh auth setup-git 2>/dev/null; then
+  err "No se pudo conectar git con GitHub."
+  echo "  Proba a mano:  gh auth setup-git"
+  exit 1
+fi
+# Confirmar que de verdad quedo: el helper tiene que estar en la config de git.
+if ! git config --get-regexp 'credential.*helper' 2>/dev/null | grep -q gh; then
+  aviso "git no quedo conectado con GitHub. Si te pide contrasena, corre: gh auth setup-git"
+fi
 ok "GitHub: $(gh api user --jq .login 2>/dev/null || echo 'sesión iniciada')"
 
 # ---- 5. Clonar el kit ----
