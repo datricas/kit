@@ -298,9 +298,14 @@ y que las tres ramas mergeen a main sin conflicto.</div>
 <div class="paso">
 <label class="chk"><input type="checkbox"> 3.7 · Ejercicio 7 — Los MCPs <small>(10 min)</small></label>
 <p>Salí de Claude y en la terminal:</p>
-<pre><code>claude plugin install chrome-devtools-mcp
-claude plugin install typescript-lsp
+<pre><code>claude plugin install typescript-lsp
 claude plugin install context7</code></pre>
+<p>El del navegador ya lo dejó puesto el instalador de Linux (Chrome corre
+adentro de WSL, <b>sin ventana</b>). Verificá que esté:</p>
+<pre><code>claude mcp list</code></pre>
+<p>Si no aparece <code>chrome</code>:</p>
+<pre><code>claude mcp add chrome --scope user -- \
+  npx -y chrome-devtools-mcp@latest --headless --isolated</code></pre>
 <p>Asegurate de tener la app corriendo en otro panel:</p>
 <pre><code>npm run dev</code></pre>
 <p>Volvé a abrir <code>claude</code> y pegá:</p>
@@ -310,9 +315,11 @@ Decime qué es lo más lento y por qué, con los números.</code></pre>
 <div class="ver">Tiene que darte un diagnóstico con números, del estilo
 <i>"tarda 1,6 s y casi todo se va en 700 consultas a la base, una por fila"</i>.<br>
 Si algo no levanta: <code>/mcp</code> muestra el estado de cada conexión.</div>
-<div class="aviso"><b>Este es el que más chances tiene de fallar en Windows.</b>
-Chrome vive del lado de Windows y Claude corre adentro de WSL. Si no levanta,
-<b>no es tu culpa</b>: ese ejercicio lo demostrás en la Mac.</div>
+<div class="aviso"><b>En Windows no vas a ver ninguna ventana de Chrome abrirse.</b>
+Corre sin pantalla adentro de WSL, y los números que devuelve son los mismos.
+En la Mac sí se ve, así que la demo vistosa hacela ahí.<br><br>
+Si igual no levanta: <code>/mcp</code> muestra el estado. Y si no hay caso, este
+ejercicio es el primero de la lista de recortes.</div>
 </div>
 
 <h2>Qué reportar</h2>
