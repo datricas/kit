@@ -87,6 +87,12 @@ function Invoke-FSPrintDesinstalar {
     Write-Host ""
     Azul "3/3 - Ubuntu"
 
+    # Regla: solo se borra la Ubuntu que instalo el kit. Se reconoce por la
+    # marca del registro (instalaciones nuevas) o porque se creo hace muy
+    # poco (las del workshop). Cualquier otra, y cualquier distro que no sea
+    # Ubuntu, no se toca.
+    $DIAS_WORKSHOP = 3
+
     $distros = @()
     try {
       $distros = ((wsl.exe --list --quiet 2>$null) -replace "`0", "") -split "`r?`n" |
@@ -95,112 +101,95 @@ function Invoke-FSPrintDesinstalar {
 
     if ($distros.Count -eq 0) {
       Salteo "no hay ninguna distribucion de Linux instalada"
-    } else {
+    }
+    elseif (-not ($distros | Where-Object { $_.Trim() -eq 'Ubuntu' })) {
+      Salteo "no hay ninguna Ubuntu"
+      if ($distros.Count -gt 0) {
+        Info ("Se dejan como estan: {0}" -f ($distros -join ', '))
+      }
+    }
+    else {
       Write-Host "  Distribuciones que tenes:" -ForegroundColor Gray
       foreach ($d in $distros) { Write-Host "    . $d" -ForegroundColor Gray }
-      Write-Host ""
-
-      # Otras distros (Docker, etc.) NUNCA se tocan.
       $otras = $distros | Where-Object { $_.Trim() -ne 'Ubuntu' }
       if ($otras.Count -gt 0) {
-        Info "Las que no son Ubuntu no se tocan (Docker y demas quedan como estan)."
         Write-Host ""
+        Info "Las que no son Ubuntu no se tocan (Docker y demas quedan intactas)."
+      }
+      Write-Host ""
+
+      # ¿Es nuestra?
+      $nuestra = $false
+      $motivo  = ''
+
+      try {
+        $m = Get-ItemProperty -Path 'HKCU:\Software\Datricas' `
+               -Name 'UbuntuInstaladaPorElKit' -ErrorAction SilentlyContinue
+        if ($m -and $m.UbuntuInstaladaPorElKit -eq 1) {
+          $nuestra = $true; $motivo = 'la instalo el kit'
+        }
+      } catch { }
+
+      $creada = $null
+      try {
+        Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss' -ErrorAction SilentlyContinue |
+          ForEach-Object {
+            $pr = Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue
+            if ($pr.DistributionName -eq 'Ubuntu' -and $pr.BasePath) {
+              $ruta = $pr.BasePath -replace '^\\\\\?\\', ''
+              if (Test-Path $ruta) { $creada = (Get-Item $ruta).CreationTime }
+            }
+          }
+      } catch { }
+
+      if (-not $nuestra -and $creada) {
+        $dias = ((Get-Date) - $creada).TotalDays
+        if ($dias -le $DIAS_WORKSHOP) {
+          $nuestra = $true
+          $motivo  = ('se creo el {0}, hace {1} dias' -f $creada.ToString('dd/MM/yyyy HH:mm'), [math]::Round($dias,1))
+        } else {
+          $motivo  = ('se creo el {0}, hace {1} dias: es anterior al workshop' -f $creada.ToString('dd/MM/yyyy'), [math]::Round($dias))
+        }
       }
 
-      $hayUbuntu = $distros | Where-Object { $_.Trim() -eq 'Ubuntu' }
-      if (-not $hayUbuntu) {
-        Salteo "no hay ninguna Ubuntu"
-      } else {
-        # Solo la borramos si la marca dice que la instalamos nosotros.
-        $laPusimosNosotros = $false
-        try {
-          $m = Get-ItemProperty -Path 'HKCU:\Software\Datricas' `
-                 -Name 'UbuntuInstaladaPorElKit' -ErrorAction SilentlyContinue
-          if ($m -and $m.UbuntuInstaladaPorElKit -eq 1) { $laPusimosNosotros = $true }
-        } catch { }
-
-        # Sin marca no sabemos con certeza. En vez de adivinar, juntamos
-        # evidencia, se la mostramos y que decida la persona: la marca es
-        # nueva, asi que quien instalo antes NUNCA la va a tener.
-        if (-not $laPusimosNosotros) {
-          Write-Host "  No hay marca del kit. Puede ser porque la instalaste antes" -ForegroundColor Gray
-          Write-Host "  de que el instalador empezara a dejarla, o porque Ubuntu ya" -ForegroundColor Gray
-          Write-Host "  era tuya. Miremos las pistas:" -ForegroundColor Gray
-          Write-Host ""
-
-          # Pista 1: cuando se creo la distribucion
-          $creada = $null
-          try {
-            $lxss = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
-            Get-ChildItem $lxss -ErrorAction SilentlyContinue | ForEach-Object {
-              $pr = Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue
-              if ($pr.DistributionName -eq 'Ubuntu' -and $pr.BasePath) {
-                $ruta = $pr.BasePath -replace '^\\\\\?\\', ''
-                if (Test-Path $ruta) { $creada = (Get-Item $ruta).CreationTime }
-              }
-            }
-          } catch { }
-          if ($creada) {
-            $dias = [math]::Round(((Get-Date) - $creada).TotalDays, 1)
-            Write-Host ("    . Ubuntu se creo el {0}  (hace {1} dias)" -f $creada.ToString('dd/MM/yyyy HH:mm'), $dias)
+      if ($nuestra) {
+        Write-Host ("  Esta Ubuntu es del workshop ({0})." -f $motivo) -ForegroundColor White
+        Write-Host ""
+        Write-Host "  >>> Borrarla se lleva TODO lo que tenga adentro <<<" -ForegroundColor Yellow
+        Write-Host "      Si guardaste algo ahi despues del workshop, sacalo primero." -ForegroundColor Yellow
+        Write-Host ""
+        $r2 = Read-Host "  Escribi BORRAR para confirmar (enter para dejarla)"
+        if ($r2 -eq 'BORRAR') {
+          wsl.exe --terminate Ubuntu 2>$null | Out-Null
+          wsl.exe --unregister Ubuntu
+          if ($LASTEXITCODE -eq 0) {
+            OK "Ubuntu borrada"
+            try {
+              Remove-ItemProperty -Path 'HKCU:\Software\Datricas' `
+                -Name 'UbuntuInstaladaPorElKit' -Force -ErrorAction SilentlyContinue
+            } catch { }
           } else {
-            Write-Host "    . No pude averiguar cuando se creo"
+            Error2 "No se pudo borrar. Proba a mano: wsl --unregister Ubuntu"
           }
-
-          # Pista 2: rastros del instalador del kit
-          $rastro = (Test-Path (Join-Path $env:LOCALAPPDATA 'fsprint-continuar.ps1')) -or
-                    ($null -ne (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' `
-                                  -Name 'FSPrintKit' -ErrorAction SilentlyContinue))
-          if ($rastro) {
-            Write-Host "    . El instalador del kit SI dejo rastros de haber instalado WSL"
-          } else {
-            Write-Host "    . No hay rastros del instalador del kit (puede que ya se hayan limpiado)"
-          }
-
-          # Pista 3: que mas hay adentro, aparte del kit
-          $otrasCosas = ''
-          try {
-            $otrasCosas = (wsl.exe -d Ubuntu -- bash -lc "ls -A ~ 2>/dev/null | grep -v -E '^\.|fsprint|practica' | head -8 | tr '\n' ' '" 2>$null)
-          } catch { }
-          if ([string]::IsNullOrWhiteSpace($otrasCosas)) {
-            Write-Host "    . Adentro no hay nada tuyo, solo lo del workshop"
-          } else {
-            Write-Host ("    . Adentro hay cosas tuyas: {0}" -f $otrasCosas.Trim()) -ForegroundColor Yellow
-          }
-
-          Write-Host ""
-          Write-Host "  Si Ubuntu la instalamos en el workshop, se puede borrar." -ForegroundColor White
-          Write-Host "  Si ya la tenias antes, o la usas para Docker: NO." -ForegroundColor White
-          Write-Host ""
-          $r1 = Read-Host "  La instalo el kit en el workshop? [s/N]"
-          if ($r1 -match '^[sSyY]') { $laPusimosNosotros = $true }
-          else {
-            Salteo "Ubuntu se deja como esta"
-            Info "El kit ya se borro de adentro. Ubuntu queda intacta y usable."
-          }
+        } else {
+          Salteo "Ubuntu se deja como esta"
         }
-
-        if ($laPusimosNosotros) {
-          Write-Host ""
-          Write-Host ""
-          Write-Host "  >>> Esto borra Ubuntu y TODO lo que tenga adentro <<<" -ForegroundColor Yellow
-          Write-Host "      Si guardaste algo ahi despues del workshop, sacalo primero." -ForegroundColor Yellow
-          Write-Host ""
-          $r2 = Read-Host "  Escribi BORRAR para confirmar (o enter para dejarla)"
-          if ($r2 -eq 'BORRAR') {
-            wsl.exe --terminate Ubuntu 2>$null | Out-Null
-            wsl.exe --unregister Ubuntu
-            if ($LASTEXITCODE -eq 0) {
-              OK "Ubuntu borrada"
-              try { Remove-ItemProperty -Path 'HKCU:\Software\Datricas' `
-                      -Name 'UbuntuInstaladaPorElKit' -Force -ErrorAction SilentlyContinue } catch { }
-            } else {
-              Error2 "No se pudo borrar. Proba a mano: wsl --unregister Ubuntu"
-            }
-          } else {
-            Salteo "Ubuntu se deja como esta"
-          }
-        }
+      }
+      elseif ($creada) {
+        Write-Host ("  Esta Ubuntu NO es del workshop: {0}." -f $motivo) -ForegroundColor Yellow
+        Write-Host "  No se toca." -ForegroundColor Yellow
+        Write-Host ""
+        Info "El kit ya se borro de adentro. Ubuntu queda intacta y usable."
+      }
+      else {
+        # Sin marca y sin fecha: no adivinamos.
+        Write-Host "  No pude determinar si esta Ubuntu es del workshop." -ForegroundColor Yellow
+        Write-Host "  Por las dudas, no se toca." -ForegroundColor Yellow
+        Write-Host ""
+        Info "El kit ya se borro de adentro. Ubuntu queda intacta y usable."
+        Write-Host ""
+        Write-Host "  Si estas seguro de que la instalamos en el workshop:" -ForegroundColor DarkGray
+        Write-Host "      wsl --unregister Ubuntu" -ForegroundColor DarkGray
       }
     }
 
