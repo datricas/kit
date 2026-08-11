@@ -1,0 +1,129 @@
+# ============================================================
+#  FS Print - Workshop Claude Code - DESINSTALADOR (Windows)
+#
+#  Uso (PowerShell COMO ADMINISTRADOR):
+#      irm https://datricas.github.io/kit/desinstalar-win | iex
+#
+#  Saca Ubuntu, la tarea de reanudacion y la configuracion de
+#  Windows Terminal que puso el kit.
+#
+#  OJO: borrar Ubuntu borra TODO lo que haya adentro. Si guardaste
+#  algo ahi, sacalo antes.
+# ============================================================
+
+function Invoke-FSPrintDesinstalar {
+  [CmdletBinding()]
+  param()
+
+  $eapPrevio = $ErrorActionPreference
+  $ErrorActionPreference = 'Stop'
+
+  function Azul($t)  { Write-Host $t -ForegroundColor Cyan }
+  function OK($t)    { Write-Host "  [OK]  $t" -ForegroundColor Green }
+  function Info($t)  { Write-Host "  ->    $t" -ForegroundColor Gray }
+  function Salteo($t){ Write-Host "  .     $t" -ForegroundColor DarkGray }
+  function Error2($t){ Write-Host "  [X]   $t" -ForegroundColor Red }
+
+  try {
+    Write-Host ""
+    Azul "==========================================="
+    Azul "  FS Print - Desinstalar de Windows"
+    Azul "==========================================="
+    Write-Host ""
+
+    $esAdmin = ([Security.Principal.WindowsPrincipal] `
+      [Security.Principal.WindowsIdentity]::GetCurrent()
+      ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $esAdmin) {
+      Error2 "Abri PowerShell como administrador y volve a pegar el comando."
+      return
+    }
+
+    Write-Host "  Se va a hacer:" -ForegroundColor White
+    Write-Host "    . Borrar la distribucion Ubuntu (y TODO lo que tenga adentro)"
+    Write-Host "    . Sacar la tarea de reanudacion del instalador"
+    Write-Host "    . Restaurar la configuracion de Windows Terminal"
+    Write-Host ""
+    Write-Host "  NO se toca: WSL en si, Windows Terminal, ni la fuente." -ForegroundColor Gray
+    Write-Host "  (son funciones de Windows que podes seguir usando)" -ForegroundColor Gray
+    Write-Host ""
+    $rta = Read-Host "  Seguimos? [s/N]"
+    if ($rta -notmatch '^[sSyY]') { Write-Host "  Cancelado."; return }
+
+    # ---- 1. La tarea de reanudacion ----
+    Write-Host ""
+    Azul "1/3 - Tarea de reanudacion"
+    $clave = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce'
+    if (Get-ItemProperty -Path $clave -Name 'FSPrintKit' -ErrorAction SilentlyContinue) {
+      Remove-ItemProperty -Path $clave -Name 'FSPrintKit' -Force
+      OK "quitada del arranque"
+    } else { Salteo "no estaba" }
+
+    $script = Join-Path $env:LOCALAPPDATA 'fsprint-continuar.ps1'
+    if (Test-Path $script) { Remove-Item $script -Force; OK "script de reanudacion" }
+    else { Salteo "script de reanudacion - no estaba" }
+
+    # ---- 2. Windows Terminal ----
+    Write-Host ""
+    Azul "2/3 - Windows Terminal"
+    $wt = Get-ChildItem "$env:LOCALAPPDATA\Packages" -Filter 'Microsoft.WindowsTerminal*' `
+            -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($wt) {
+      $cfg    = Join-Path $wt.FullName 'LocalState\settings.json'
+      $backup = "$cfg.antes-del-kit"
+      if (Test-Path $backup) {
+        Copy-Item $backup $cfg -Force
+        Remove-Item $backup -Force
+        OK "configuracion restaurada a como estaba"
+      } else {
+        Salteo "no hay copia de seguridad - se deja como esta"
+        Info "si queres volver al tema original, borra settings.json y"
+        Info "Windows Terminal lo recrea al abrir"
+      }
+    } else { Salteo "no esta instalado" }
+
+    # ---- 3. Ubuntu ----
+    Write-Host ""
+    Azul "3/3 - Ubuntu"
+    $distros = ''
+    try { $distros = (wsl.exe --list --quiet 2>$null) -replace "`0", "" } catch { }
+
+    if ($distros -match 'Ubuntu') {
+      Write-Host ""
+      Write-Host "  >>> Esto borra Ubuntu y TODO lo que tenga adentro <<<" -ForegroundColor Yellow
+      Write-Host "      archivos, configuracion, todo. No se puede deshacer." -ForegroundColor Yellow
+      Write-Host ""
+      $r2 = Read-Host "  Escribi BORRAR para confirmar"
+      if ($r2 -eq 'BORRAR') {
+        wsl.exe --terminate Ubuntu 2>$null | Out-Null
+        wsl.exe --unregister Ubuntu
+        if ($LASTEXITCODE -eq 0) { OK "Ubuntu borrado" }
+        else { Error2 "No se pudo borrar. Proba: wsl --unregister Ubuntu" }
+      } else {
+        Salteo "Ubuntu se deja como esta"
+      }
+    } else { Salteo "no hay ninguna Ubuntu instalada" }
+
+    Write-Host ""
+    Azul "==========================================="
+    OK "Listo."
+    Write-Host ""
+    Write-Host "  Si tambien queres apagar WSL de Windows:" -ForegroundColor Gray
+    Write-Host "      dism /online /disable-feature /featurename:Microsoft-Windows-Subsystem-Linux" -ForegroundColor DarkGray
+    Write-Host "      dism /online /disable-feature /featurename:VirtualMachinePlatform" -ForegroundColor DarkGray
+    Write-Host "  (pide reiniciar. Solo si no lo usas para nada mas.)" -ForegroundColor Gray
+    Write-Host ""
+    Azul "==========================================="
+    Write-Host ""
+  }
+  catch {
+    Write-Host ""
+    Error2 "Error: $($_.Exception.Message)"
+    Write-Host ""
+  }
+  finally {
+    $ErrorActionPreference = $eapPrevio
+  }
+}
+
+Invoke-FSPrintDesinstalar

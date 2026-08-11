@@ -48,3 +48,25 @@ bash <(curl -fsSL https://datricas.github.io/kit/linux)
 | `index.html` | La página con los dos comandos |
 
 El instalador de verdad vive en `datricas/fsprint-claude-kit` (privado).
+
+## Desinstalar
+
+Deja la máquina como estaba: restaura las configuraciones que había y borra
+todo lo que agregó el kit.
+
+**macOS · Linux · WSL**
+```bash
+bash <(curl -fsSL https://datricas.github.io/kit/desinstalar)
+```
+
+Por defecto no toca herramientas de uso general (git, node, tmux, Homebrew,
+Oh My Zsh) porque pueden estar en uso por otras cosas. Para sacar también eso:
+
+```bash
+bash <(curl -fsSL https://datricas.github.io/kit/desinstalar) --todo
+```
+
+**Windows** — para sacar Ubuntu y WSL, en PowerShell como administrador:
+```powershell
+irm https://datricas.github.io/kit/desinstalar-win | iex
+```
