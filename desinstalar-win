@@ -118,7 +118,7 @@ function Invoke-FSPrintDesinstalar {
       }
       Write-Host ""
 
-      # ¿Es nuestra?
+      # Es nuestra?
       $nuestra = $false
       $motivo  = ''
 
