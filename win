@@ -184,10 +184,19 @@ Read-Host "  Enter para cerrar"
           Write-Host ""
           return
         }
+        # Dejamos constancia de que Ubuntu la instalamos NOSOTROS. Si ya la
+        # tenia de antes, no queremos que el desinstalador se la lleve puesta.
+        try {
+          New-Item -Path 'HKCU:\Software\Datricas' -Force | Out-Null
+          New-ItemProperty -Path 'HKCU:\Software\Datricas' -Name 'UbuntuInstaladaPorElKit' `
+            -Value 1 -PropertyType DWord -Force | Out-Null
+        } catch { }
+
         $huboCambio = $true
       }
     } else {
-      OK "Ubuntu instalado"
+      OK "Ubuntu ya estaba instalado"
+      Info "No la vamos a tocar al desinstalar: ya era tuya."
     }
 
     # ---- 5. Windows Terminal y la fuente ----

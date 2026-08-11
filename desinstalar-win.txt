@@ -40,7 +40,8 @@ function Invoke-FSPrintDesinstalar {
     }
 
     Write-Host "  Se va a hacer:" -ForegroundColor White
-    Write-Host "    . Borrar la distribucion Ubuntu (y TODO lo que tenga adentro)"
+    Write-Host "    . Borrar Ubuntu, PERO solo si la instalo el kit"
+    Write-Host "      (si ya la tenias, o si usas Docker, no se toca nada)"
     Write-Host "    . Sacar la tarea de reanudacion del instalador"
     Write-Host "    . Restaurar la configuracion de Windows Terminal"
     Write-Host ""
@@ -85,30 +86,76 @@ function Invoke-FSPrintDesinstalar {
     # ---- 3. Ubuntu ----
     Write-Host ""
     Azul "3/3 - Ubuntu"
-    $distros = ''
-    try { $distros = (wsl.exe --list --quiet 2>$null) -replace "`0", "" } catch { }
 
-    if ($distros -match 'Ubuntu') {
+    $distros = @()
+    try {
+      $distros = ((wsl.exe --list --quiet 2>$null) -replace "`0", "") -split "`r?`n" |
+                 Where-Object { $_.Trim() -ne '' }
+    } catch { }
+
+    if ($distros.Count -eq 0) {
+      Salteo "no hay ninguna distribucion de Linux instalada"
+    } else {
+      Write-Host "  Distribuciones que tenes:" -ForegroundColor Gray
+      foreach ($d in $distros) { Write-Host "    . $d" -ForegroundColor Gray }
       Write-Host ""
-      Write-Host "  >>> Esto borra Ubuntu y TODO lo que tenga adentro <<<" -ForegroundColor Yellow
-      Write-Host "      archivos, configuracion, todo. No se puede deshacer." -ForegroundColor Yellow
-      Write-Host ""
-      $r2 = Read-Host "  Escribi BORRAR para confirmar"
-      if ($r2 -eq 'BORRAR') {
-        wsl.exe --terminate Ubuntu 2>$null | Out-Null
-        wsl.exe --unregister Ubuntu
-        if ($LASTEXITCODE -eq 0) { OK "Ubuntu borrado" }
-        else { Error2 "No se pudo borrar. Proba: wsl --unregister Ubuntu" }
-      } else {
-        Salteo "Ubuntu se deja como esta"
+
+      # Otras distros (Docker, etc.) NUNCA se tocan.
+      $otras = $distros | Where-Object { $_.Trim() -ne 'Ubuntu' }
+      if ($otras.Count -gt 0) {
+        Info "Las que no son Ubuntu no se tocan (Docker y demas quedan como estan)."
+        Write-Host ""
       }
-    } else { Salteo "no hay ninguna Ubuntu instalada" }
+
+      $hayUbuntu = $distros | Where-Object { $_.Trim() -eq 'Ubuntu' }
+      if (-not $hayUbuntu) {
+        Salteo "no hay ninguna Ubuntu"
+      } else {
+        # Solo la borramos si la marca dice que la instalamos nosotros.
+        $laPusimosNosotros = $false
+        try {
+          $m = Get-ItemProperty -Path 'HKCU:\Software\Datricas' `
+                 -Name 'UbuntuInstaladaPorElKit' -ErrorAction SilentlyContinue
+          if ($m -and $m.UbuntuInstaladaPorElKit -eq 1) { $laPusimosNosotros = $true }
+        } catch { }
+
+        if (-not $laPusimosNosotros) {
+          Write-Host "  Ubuntu NO la instalo el kit: o ya la tenias, o se instalo" -ForegroundColor Yellow
+          Write-Host "  por otro lado. La dejamos como esta." -ForegroundColor Yellow
+          Write-Host ""
+          Info "El kit ya se borro de adentro. Ubuntu queda intacta y usable."
+          Write-Host ""
+          Write-Host "  Si igual la queres borrar, a mano y con cuidado:" -ForegroundColor DarkGray
+          Write-Host "      wsl --unregister Ubuntu" -ForegroundColor DarkGray
+        } else {
+          Write-Host "  Ubuntu la instalo el kit, asi que se puede sacar." -ForegroundColor White
+          Write-Host ""
+          Write-Host "  >>> Esto borra Ubuntu y TODO lo que tenga adentro <<<" -ForegroundColor Yellow
+          Write-Host "      Si guardaste algo ahi despues del workshop, sacalo primero." -ForegroundColor Yellow
+          Write-Host ""
+          $r2 = Read-Host "  Escribi BORRAR para confirmar (o enter para dejarla)"
+          if ($r2 -eq 'BORRAR') {
+            wsl.exe --terminate Ubuntu 2>$null | Out-Null
+            wsl.exe --unregister Ubuntu
+            if ($LASTEXITCODE -eq 0) {
+              OK "Ubuntu borrada"
+              try { Remove-ItemProperty -Path 'HKCU:\Software\Datricas' `
+                      -Name 'UbuntuInstaladaPorElKit' -Force -ErrorAction SilentlyContinue } catch { }
+            } else {
+              Error2 "No se pudo borrar. Proba a mano: wsl --unregister Ubuntu"
+            }
+          } else {
+            Salteo "Ubuntu se deja como esta"
+          }
+        }
+      }
+    }
 
     Write-Host ""
     Azul "==========================================="
     OK "Listo."
     Write-Host ""
-    Write-Host "  Si tambien queres apagar WSL de Windows:" -ForegroundColor Gray
+    Write-Host "  Si NO usas WSL para nada mas (ojo con Docker), se puede apagar:" -ForegroundColor Gray
     Write-Host "      dism /online /disable-feature /featurename:Microsoft-Windows-Subsystem-Linux" -ForegroundColor DarkGray
     Write-Host "      dism /online /disable-feature /featurename:VirtualMachinePlatform" -ForegroundColor DarkGray
     Write-Host "  (pide reiniciar. Solo si no lo usas para nada mas.)" -ForegroundColor Gray
